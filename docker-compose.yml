@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  checker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+
+    # Загружает .env файл в окружение контейнера
+    env_file:
+      - .env
+
+    # Пробрасывает порты. 8088 - внутри контейнера.
+    # APP_HOST и APP_PORT берутся из твоего .env
+    ports:
+      - "${APP_HOST:-127.0.0.1}:${APP_PORT:-8888}:${APP_PORT:-8888}"
+
+    volumes:
+      # Монтируем локальные папки в контейнер
+      # Это позволит нам видеть soax_geo.json и сохранять логи
+      - ./data:/data
+      - ./logs:/logs
+      - .:/app
+
+      # Монтируем код. Это позволит Gunicorn "видеть"
+      # изменения кода без полной пересборки *образа*.
+      - .:/app
+
+    # Переопределяем команду из Dockerfile для разработки
+    # --reload будет автоматически перезапускать Gunicorn при изменении .py файлов
+    command: gunicorn --bind 0.0.0.0:${APP_PORT:-8888} --threads 4 --reload server:app
