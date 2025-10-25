@@ -1,0 +1,24 @@
+app:
+  host: 127.0.0.1
+  port: 8888
+
+paths:
+  logs_dir: ./logs # change to absolute pats (/logs) for running in docker
+  data_dir: ./data # change to absolute pats (/data) for running in docker
+
+execution:
+  max_concurrency: 3
+  timeout_sec: 60
+
+proxy:
+  type: http            # http | socks5
+  dns_mode: proxy       # local | proxy
+  sticky_policy: auto   # auto | on | off
+  sticky_ttl_sec: 360
+
+screenshots:
+  enabled_default: false
+  max_workers: 1
+  width: 1366
+  height: 768
+

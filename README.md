@@ -1,32 +1,25 @@
 ## How to run the project
 
-### *NOTE*: Project requires python 3.10 and higher. Tested on python 3.10.
-
-1. create virtualenv and install deps:
-```shell
-python3.10 -m venv venv
+```bash
+cp .env.example .env
+docker compose up --build
 ```
 
-2. activate venv:
-```shell
-. venv/bin/activate
-```
-
-3. Istall requirements:
-```shell
-pip install -r requirements.txt
-````
-
-4. edit `.env` and `.flaskenv` file (copy them from `.env.dist` and `.flaskenv.dist` and edit)
-
-5. run migrations:
-```shell
-flask db upgrade
-```
-
-6. run server:
-```shell
-flask run
-```
+Open http://127.0.0.1:8088
 
 ---
+
+## Logs
+
+- Логи и скриншоты: `./logs/YYYY-MM-DD/HH-MM-SS_domain.md(.png)`
+
+- Сводка запуска: `./logs/YYYY-MM-DD/HH-MM-SS_run-summary.md`
+
+- App tech log: `./logs/engine.log`
+
+- Config: `./data/config/app.yaml`
+
+- SOAX geos & regions (cached): `./data/catalog/soax_geo.json`
+
+Screenshots are disabled by default. Enable by checking the box at startup.
+
