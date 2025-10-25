@@ -1,4 +1,4 @@
-import os
+import os, json
 from datetime import datetime
 
 def ensure_day_dir(logs_dir: str) -> str:
@@ -22,7 +22,8 @@ def render_md_card(
     domain: str, started: str, geo_str: str, proxy_str: str, dns_mode: str,
     timeout_sec: int, url_show: str, redirects: list, timings: dict,
     http_status: int | None, bytes_count: int | None, result: str,
-    screenshot_name: str | None, notes: str | None
+    screenshot_name: str | None, notes: str | None,
+    debug_info: dict | None = None # <-- ДОБАВЛЕНО
 ) -> str:
     lines = []
     lines.append(f"# {domain}")
@@ -55,4 +56,12 @@ def render_md_card(
     if screenshot_name:
         lines.append(f"Screenshot: {screenshot_name}")
     lines.append(f"Notes: {notes or '—'}")
+
+    if debug_info:
+        lines.append("")
+        lines.append("## Debug Info")
+        lines.append("```json")
+        lines.append(json.dumps(debug_info, indent=2))
+        lines.append("```")
+
     return "\n".join(lines)

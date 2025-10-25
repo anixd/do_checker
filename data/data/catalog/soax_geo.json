@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "generated_at": "2025-10-25T00:00:00Z",
+  "countries": [
+    {
+      "code": "kz",
+      "name": "Kazakhstan",
+      "regions": [
+        {
+          "code": "kz-ala",
+          "name": "Almaty"
+        }
+      ],
+      "isps": [
+        "Kazakhtelecom"
+      ]
+    },
+    {
+      "code": "az",
+      "name": "Azerbaijan",
+      "regions": [],
+      "isps": []
+    },
+    {
+      "code": "in",
+      "name": "India",
+      "regions": [],
+      "isps": []
+    },
+    {
+      "code": "uz",
+      "name": "Uzbekistan",
+      "regions": [],
+      "isps": []
+    },
+    {
+      "code": "bd",
+      "name": "Bangladesh",
+      "regions": [],
+      "isps": []
+    },
+    {
+      "code": "ru",
+      "name": "Russia",
+      "regions": [],
+      "isps": []
+    },
+    {
+      "code": "tr",
+      "name": "Turkey",
+      "regions": [
+        {
+          "code": "tr-35",
+          "name": "Izmir Province"
+        }
+      ],
+      "isps": [
+        "Turk Telekom",
+        "Vodafone TR",
+        "Turkcell"
+      ]
+    },
+    {
+      "code": "kg",
+      "name": "Kyrgyzstan",
+      "regions": [],
+      "isps": []
+    },
+    {
+      "code": "ca",
+      "name": "Canada",
+      "regions": [],
+      "isps": []
+    },
+    {
+      "code": "tj",
+      "name": "Tajikistan",
+      "regions": [],
+      "isps": []
+    }
+  ]
+}

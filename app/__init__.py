@@ -1,14 +1,17 @@
 from flask import Flask
 from config.loader import ConfigStore
 from logging_.engine_logger import get_engine_logger
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def create_app() -> Flask:
     app = Flask(__name__)
     app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 
     # Глобальная конфигурация
-    ConfigStore.init()  # читает /data/config/app.yaml и env
-    get_engine_logger() # инициализируем engine.log
+    ConfigStore.init()
+    get_engine_logger()
 
     # Регистрация маршрутов
     from .routes import bp as routes_bp

@@ -1,0 +1,8 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Geo Catalog</title></head>
+<body>
+  <h2>SOAX Geo Catalog</h2>
+  <pre>{{ catalog|tojson(indent=2) }}</pre>
+  <form method="post" action="{{ url_for('routes.catalog_refresh') }}">
+    <button type="submit">Refresh from SOAX (stub for now)</button>
+  </form>
+</body></html>

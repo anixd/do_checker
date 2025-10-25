@@ -15,13 +15,13 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Установить браузеры Playwright (без этого скриншоты будут отключены автоматически)
-RUN python -m playwright install --with-deps chromium || true
+RUN python -m playwright install || true
 
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 COPY . /app
 
-EXPOSE 8088
+EXPOSE ${APP_PORT:-8888}
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:8088", "--threads", "8", "server:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:${APP_PORT:-8888}", "--threads", "8", "server:app"]
