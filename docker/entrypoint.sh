@@ -36,6 +36,8 @@ soax:
   port_sticky: 5000
   package_id: null
   session_password: null
+  api_key: null
+  package_key: null
 http_client:
   user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
   accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
