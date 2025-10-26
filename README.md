@@ -33,6 +33,9 @@ A web application to check the availability of websites ("mirrors") through the 
         ```bash
         docker-compose up --build
         ```
+
+    **Note**:  *First launch may take 5-8 minutes due to the pulling and extraction of Playwright and headless Chromium images (they are quite heavy).*
+    
     * The `--build` flag is necessary for the first run or if dependencies (`requirements.txt`) or the `Dockerfile` have changed.
     * Docker Compose will build the application image (this might take some time on the first run due to Playwright installation) and start the container. You will see application logs directly in your terminal.
     * To stop the application, press `Ctrl+C`.
@@ -63,7 +66,7 @@ A web application to check the availability of websites ("mirrors") through the 
 
 ## Logs and Data
 
-* **Check Logs:** Results for each check (`.md` files) and screenshots (`.png`) are saved in the local `./logs/YYYY-MM-DD/` directory. This folder is mounted into the container as `/logs`.
+* **Check Logs:** Results for each check (`.md` files) and screenshots (`.png`) are saved in the local `./logs/YYYY-MM-DD/` directory within the project dir. This folder is mounted into the container as `/logs`.
 * **Engine Log:** The application's technical log (`engine.log`) is located in `./logs/`.
 * **Data:** Configuration (`app.yaml`) and the Geo catalog (`soax_geo.json`) are stored in `./data/`. This folder is mounted into the container as `/data`.
 * **Clearing Logs:** The "Clear logs" button on the main page deletes all contents of the `./logs/` directory.

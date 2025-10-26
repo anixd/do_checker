@@ -85,6 +85,13 @@ nav.tabs a.active {
 /* Clear Logs */
  button.button-secondary {
     background-color: #df3737;
+    padding: 8px 16px;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-left: 24px;
 }
 button.button-secondary:hover { background: #5a6268; }
 .ml-2 { margin-left: 16px; }
