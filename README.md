@@ -4,6 +4,7 @@ A web application to check the availability of websites ("mirrors") through the 
 
 ## Prerequisites
 
+* **Python 3.12** or higher (been tested on 3.14).
 * **Docker:** Ensure Docker is installed and running. Installation instructions: [Get Docker](https://docs.docker.com/get-docker/)
 * **Docker Compose:** Usually installed with Docker Desktop. Check with `docker-compose --version`.
 
