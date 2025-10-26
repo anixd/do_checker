@@ -11,7 +11,7 @@ A web application to check the availability of websites ("mirrors") through the 
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repository_url>
+    git clone https://github.com/anixd/do_checker.git
     cd do_checker
     ```
 
