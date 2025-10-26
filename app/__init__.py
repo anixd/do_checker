@@ -25,4 +25,8 @@ def create_app() -> Flask:
     from .sse import bp as sse_bp
     app.register_blueprint(sse_bp)
 
+    # static (for screenshots)
+    from .static_server import static_bp
+    app.register_blueprint(static_bp)
+
     return app

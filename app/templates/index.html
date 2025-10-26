@@ -2,98 +2,15 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>DutyOps Checker</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; max-width: 960px; }
-    textarea {
-        width: 100%;
-        height: 180px;
-        box-sizing: border-box;
-        font-size: 16px;
-    }
-    .row { display:flex; gap:12px; align-items:flex-end; flex-wrap: wrap; margin-bottom: 12px;}
-    .muted { color:#666; font-size:12px; }
-    label { font-size:14px; display:block; margin-bottom: 4px; font-weight: 500;}
-    fieldset { border: 1px solid #ccc; border-radius: 8px; margin-bottom: 16px; padding: 16px;}
-    legend { font-weight: bold; padding: 0 8px; }
-    input[type="text"], input[type="number"], select {
-        padding: 6px 8px;
-        border-radius: 4px;
-        border: 1px solid #aaa;
-        min-width: 150px;
-    }
-    button[type="submit"] {
-        padding: 8px 16px;
-        background: #007aff;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        font-size: 16px;
-        cursor: pointer;
-    }
-    button[type="submit"]:hover { background: #0056b3; }
-    button[type="submit"]:disabled { background: #999; cursor: not-allowed; }
-    .form-group { display: flex; flex-direction: column; }
-
-    nav.tabs {
-        border-bottom: 2px solid #ddd;
-        margin-bottom: 20px;
-    }
-    nav.tabs a {
-        display: inline-block;
-        padding: 8px 16px;
-        text-decoration: none;
-        color: #333;
-        border: 2px solid transparent;
-        border-bottom: none;
-        border-radius: 6px 6px 0 0;
-        font-weight: 500;
-        position: relative;
-        top: 2px;
-    }
-    nav.tabs a:hover { background-color: #f0f0f0; }
-    nav.tabs a.active {
-        border-color: #08244e;
-        background-color: #72b2e2;
-    }
-
-    #results-container { margin-top: 24px; }
-    .result-card {
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 12px 16px;
-        margin-bottom: 12px;
-        display: grid;
-        grid-template-columns: 40px 1fr 100px 100px;
-        gap: 16px;
-        align-items: center;
-    }
-    .result-card strong { font-size: 1.1em; }
-    .result-card .status { font-weight: bold; }
-    .result-card .status-icon { font-size: 24px; }
-    .status-success { color: #0a7d00; }
-    .status-error { color: #b00020; }
-    .result-card .timings { font-size: 13px; color: #333; }
-    .result-card .links a { font-size: 13px; }
-    .result-header {
-        grid-column: 1 / -1;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #eee;
-        font-size: 14px;
-        color: #555;
-    }
-    .warn { color: #920404; }
-    .bold { font-weight: bold; }
-    .ital { font-style: italic; }
-    .mb-1 { margin-bottom: 8px; }
-    .mb-2 { margin-bottom: 16px; }
-    .mb-3 { margin-bottom: 24px; }
-    .mt-1 { margin-top: 8px; }
-    .mt-2 { margin-top: 16px; }
-    .mt-3 { margin-top: 24px; }
-  </style>
+  <title>mirror_checker</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
+<body
+  data-regions-url="{{ url_for('routes.api_get_regions') }}"
+  data-cities-url="{{ url_for('routes.api_get_cities') }}"
+  data-isps-url="{{ url_for('routes.api_get_isps') }}"
+  data-events-url="{{ url_for('sse.events', run_id='') }}"
+>
 
   <nav class="tabs">
     <a href="{{ url_for('routes.index') }}" class="active">Checker</a>
@@ -101,7 +18,7 @@
     <a href="{{ url_for('routes.settings') }}" target="_blank" rel="noopener noreferrer">Settings</a>
   </nav>
 
-  <h1>Mirror Checker</h1>
+  <h1 class="mb-2">DO Checker</h1>
 
   <form method="post" action="{{ url_for('routes.launch_run') }}" id="check-form">
 
@@ -109,7 +26,7 @@
       <legend>Check Parameters</legend>
       <div class="form-group">
         <label for="urls">URL(s), one per line</label>
-        <textarea name="urls" id="urls" placeholder="some-site.com&#10;other-site.org"></textarea>
+        <textarea name="urls" id="urls" placeholder="somesite.com&#10;othersite.org"></textarea>
       </div>
     </fieldset>
 
@@ -127,21 +44,15 @@
         </div>
         <div class="form-group">
           <label for="region">Region</label>
-          <select name="region" id="region" disabled>
-            <option value="">(any)</option>
-          </select>
+          <select name="region" id="region" disabled> <option value="">(any)</option> </select>
         </div>
         <div class="form-group">
           <label for="city">City</label>
-          <select name="city" id="city" disabled>
-            <option value="">(any)</option>
-          </select>
+          <select name="city" id="city" disabled> <option value="">(any)</option> </select>
         </div>
         <div class="form-group">
           <label for="isp">ISP</label>
-          <select name="isp" id="isp" disabled>
-            <option value="">(any)</option>
-          </select>
+          <select name="isp" id="isp" disabled> <option value="">(any)</option> </select>
         </div>
       </div>
     </fieldset>
@@ -151,7 +62,7 @@
       <div class="row">
         <div class="form-group">
           <label for="connection_type">Connection Type</label>
-          <input type="text" id="connection_type" name="connection_type" value="wifi" readonly title="Only 'wifi' is supported in Port-mode">
+          <input type="text" id="connection_type" name="connection_type" value="wifi" readonly>
         </div>
         <div class="form-group">
           <label for="proxy_type">Protocol</label>
@@ -187,240 +98,30 @@
         </div>
         <div class="form-group">
           <label style="visibility: hidden;">_</label>
-          <label>
-            <input type="checkbox" name="make_screenshot" {% if defaults.screenshots_enabled %}checked{% endif %}/>
-            <span class="warn ital">Screenshots (coming soon)</span>
-          </label>
+          <label> <input type="checkbox" name="make_screenshot" {% if defaults.screenshots_enabled %}checked{% endif %}/> Screenshots </label>
         </div>
       </div>
-
-      <hr />
-
       <div class="form-group">
-          <label style="visibility: hidden;">_</label>
-          <label>
-            <input type="checkbox" name="debug_mode" {% if request.args.get('debug') %}checked{% endif %}/>
-            <span class="warn bold">Debug Mode</span>
-          </label>
-        </div>
-
+        <label style="visibility: hidden;">_</label>
+        <label> <input type="checkbox" name="debug_mode" {% if request.args.get('debug') %}checked{% endif %}/> <span class="text-danger">Debug Mode</span> </label>
+      </div>
       <div class="row" style="display: none;">
-        <div class="form-group">
-          <label for="sticky_policy">Sticky</label>
-          <select name="sticky_policy" id="sticky_policy">
-            <option value="auto" {% if defaults.sticky_policy=='auto' %}selected{% endif %}>auto</option>
-            <option value="on" {% if defaults.sticky_policy=='on' %}selected{% endif %}>on</option>
-            <option value="off" {% if defaults.sticky_policy=='off' %}selected{% endif %}>off</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="sticky_ttl_sec">TTL (sec)</label>
-          <input name="sticky_ttl_sec" id="sticky_ttl_sec" type="number" min="60" value="{{defaults.sticky_ttl_sec}}"/>
-        </div>
       </div>
     </fieldset>
 
     <div class="row" style="justify-content: space-between; align-items: center;">
-      <button type="submit" id="run-button">Run checks</button>
+       <div>
+          <button type="submit" id="run-button">Run checks</button>
+          <button type="button" id="clear-logs-button" class="button-secondary ml-2" data-clear-url="{{ url_for('routes.clear_logs') }}">Clear logs</button>
+       </div>
     </div>
     <p class="muted">Files will be saved under {{ logs_dir }}</p>
   </form>
 
-  <div id="results-container">
+  <div id="results-container" class="mt-3">
     </div>
 
-<script>
-  // каскадный дропдаун
-  document.addEventListener("DOMContentLoaded", () => {
-    const countrySelect = document.getElementById("country");
-    const regionSelect = document.getElementById("region");
-    const citySelect = document.getElementById("city");
-    const ispSelect = document.getElementById("isp");
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 
-    const populateSelect = (selectEl, items, type) => {
-      selectEl.innerHTML = '<option value="">(any)</option>';
-      if (items.length > 0) {
-        if (type === 'isp') {
-          items.forEach(item => {
-            const val = item.toLowerCase().replace(/ /g, '+');
-            selectEl.add(new Option(item, val));
-          });
-        } else {
-          items.forEach(item => {
-            selectEl.add(new Option(item.name, item.code));
-          });
-        }
-        selectEl.disabled = false;
-      } else {
-        selectEl.disabled = true;
-      }
-    };
-
-    countrySelect.addEventListener("change", async (e) => {
-      const countryCode = e.target.value;
-      if (!countryCode) {
-        populateSelect(regionSelect, [], 'region');
-        populateSelect(citySelect, [], 'city');
-        populateSelect(ispSelect, [], 'isp');
-        return;
-      }
-      try {
-        const [regionsRes, citiesRes, ispsRes] = await Promise.all([
-          fetch(`{{ url_for('routes.api_get_regions') }}?country=${countryCode}`),
-          fetch(`{{ url_for('routes.api_get_cities') }}?country=${countryCode}`),
-          fetch(`{{ url_for('routes.api_get_isps') }}?country=${countryCode}`)
-        ]);
-        const regions = await regionsRes.json();
-        const cities = await citiesRes.json();
-        const isps = await ispsRes.json();
-        populateSelect(regionSelect, regions, 'region');
-        populateSelect(citySelect, cities, 'city');
-        populateSelect(ispSelect, isps, 'isp');
-      } catch (err) {
-        console.error("Failed to fetch geo data:", err);
-      }
-    });
-  });
-
-  document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("check-form");
-    const runButton = document.getElementById("run-button");
-    const resultsContainer = document.getElementById("results-container");
-    let currentEventSource = null;
-
-    const renderCard = (payload) => {
-        // Создаем div-карточку
-        const card = document.createElement("div");
-        card.className = "result-card";
-        // Уникальный ID, чтобы мы могли обновить 'loading'
-        card.id = `result-${payload.run_id}-${payload.url.replace(/[^a-zA-Z0-9]/g, "")}`;
-
-        let icon = "🔄";
-        let statusClass = "";
-        let statusText = payload.type === 'check_started' ? 'Running...' : payload.result;
-        let details = `...`;
-
-        if (payload.type === 'check_finished') {
-            if (payload.result === 'success') {
-                icon = "✅";
-                statusClass = "status-success";
-                details = `HTTP ${payload.http_code || 200} | TTFB: ${payload.ttfb_ms || '-'} ms`;
-            } else {
-                icon = "❌";
-                statusClass = "status-error";
-                details = `Error: ${payload.result} | ${payload.notes || ''}`;
-            }
-        }
-
-        card.innerHTML = `
-            <div class="status-icon">${icon}</div>
-            <div>
-                <strong>${payload.url}</strong>
-                <div class="timings">${details}</div>
-            </div>
-            <div class="status ${statusClass}">${statusText}</div>
-            <div class="links">
-                ${payload.md_name ? `<a href="/logs/..." target="_blank">${payload.md_name}</a>` : ''}
-                ${payload.png_name ? `<br><a href="/logs/..." target="_blank">${payload.png_name}</a>` : ''}
-            </div>
-        `;
-
-        card.querySelector('.links').style.display = 'none';
-
-        return card;
-    };
-
-    const renderHeader = (payload) => {
-        const header = document.createElement("div");
-        header.className = "result-header";
-        header.innerHTML = `
-            <strong>Run: <code>${payload.run_id}</code></strong>
-            (${payload.settings.country.toUpperCase()}, ${payload.settings.urls.length} URLs)
-            <span id="run-status-${payload.run_id}">(Running...)</span>
-        `;
-        return header;
-    };
-
-    form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        // Блокируем кнопку
-        runButton.disabled = true;
-        runButton.textContent = "Running...";
-        resultsContainer.innerHTML = "";
-
-        // Закрываем старый SSE, если он был
-        if (currentEventSource) {
-            currentEventSource.close();
-        }
-
-        // Отправляем форму через Fetch API
-        const formData = new FormData(form);
-        let response;
-        try {
-            response = await fetch(form.action, {
-                method: "POST",
-                body: formData,
-            });
-        } catch (err) {
-            console.error("Fetch error:", err);
-            resultsContainer.innerHTML = `<div class="result-card status-error">Network error submitting run.</div>`;
-            runButton.disabled = false;
-            runButton.textContent = "Run checks";
-            return;
-        }
-
-        if (!response.ok) {
-             const errData = await response.json();
-             resultsContainer.innerHTML = `<div class="result-card status-error">Error: ${errData.error || 'Unknown error'}</div>`;
-             runButton.disabled = false;
-             runButton.textContent = "Run checks";
-             return;
-        }
-
-        const data = await response.json();
-        const runId = data.run_id;
-
-        currentEventSource = new EventSource(`/events/${runId}`);
-
-        currentEventSource.onmessage = (event) => {
-            const payload = JSON.parse(event.data);
-
-            if (payload.type === 'run_started') {
-                resultsContainer.prepend(renderHeader(payload));
-            }
-            else if (payload.type === 'check_started') {
-                resultsContainer.append(renderCard(payload));
-            }
-            else if (payload.type === 'check_finished') {
-                // Ищем карточку "Running..." и обновляем ее
-                const cardId = `result-${payload.run_id}-${payload.url.replace(/[^a-zA-Z0-9]/g, "")}`;
-                const existingCard = document.getElementById(cardId);
-                if (existingCard) {
-                    existingCard.replaceWith(renderCard(payload));
-                } else {
-                    resultsContainer.append(renderCard(payload));
-                }
-            }
-            else if (payload.type === 'run_finished') {
-                const statusEl = document.getElementById(`run-status-${payload.run_id}`);
-                if (statusEl) {
-                    statusEl.textContent = `(Finished in ${payload.totals.time_ms / 1000}s. OK: ${payload.totals.ok}, Err: ${payload.totals.err})`;
-                }
-                runButton.disabled = false;
-                runButton.textContent = "Run checks";
-                currentEventSource.close();
-            }
-        };
-
-        currentEventSource.onerror = (err) => {
-             console.error("EventSource failed:", err);
-             runButton.disabled = false;
-             runButton.textContent = "Run checks";
-             currentEventSource.close();
-        };
-    });
-  });
-</script>
 </body>
 </html>

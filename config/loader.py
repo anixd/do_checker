@@ -3,7 +3,6 @@ import os, yaml
 from dataclasses import dataclass, fields
 from typing import Any, Dict
 
-# --- Dataclasses ---
 @dataclass
 class AppCfg:
     host: str
@@ -36,6 +35,7 @@ class ShotsCfg:
     max_workers: int
     width: int
     height: int
+    timeout_sec: int
 
 
 @dataclass
@@ -50,7 +50,6 @@ class SoaxCfg:
     package_key: str | None
 
 
-# --- НОВЫЙ DATACLASS ---
 @dataclass
 class HttpCfg:
     user_agent: str
@@ -66,10 +65,9 @@ class RootCfg:
     proxy: ProxyCfg
     screenshots: ShotsCfg
     soax: SoaxCfg
-    http_client: HttpCfg  # <-- ДОБАВЛЕНО
+    http_client: HttpCfg
 
 
-# --- ConfigStore ---
 class ConfigStore:
     _cfg: RootCfg = None
     _yaml_text: str = ""
@@ -89,7 +87,17 @@ class ConfigStore:
             print(f"       (Make sure ./data/config/app.yaml exists locally)")
             raise
 
-        # --- Добавляем defaults для soax и http_client ---
+        # defaults для screenshots
+        if "screenshots" not in data:
+            data["screenshots"] = {
+                "enabled_default": False,
+                "max_workers": 1,
+                "width": 1366,
+                "height": 768,
+                "timeout_sec": 30
+            }
+
+        # defaults для soax и http_client
         if "soax" not in data:
             data["soax"] = {
                 "host": "proxy.soax.com",
@@ -115,7 +123,7 @@ class ConfigStore:
             proxy=ProxyCfg(**data["proxy"]),
             screenshots=ShotsCfg(**data["screenshots"]),
             soax=SoaxCfg(**data["soax"]),
-            http_client=HttpCfg(**data["http_client"])  # <-- ДОБАВЛЕНО
+            http_client=HttpCfg(**data["http_client"])
         )
 
         cls._override_from_env(cls._cfg)
@@ -137,6 +145,7 @@ class ConfigStore:
             "STICKY_POLICY": (cfg.proxy, "sticky_policy"),
             "STICKY_TTL_SEC": (cfg.proxy, "sticky_ttl_sec", int),
             "MAX_SCREENSHOT_WORKERS": (cfg.screenshots, "max_workers", int),
+            "SCREENSHOT_TIMEOUT_SEC": (cfg.screenshots, "timeout_sec", int),
 
             "SOAX_HOST": (cfg.soax, "host"),
             "SOAX_PORT_DEFAULT_PORT": (cfg.soax, "port_default_port", int),

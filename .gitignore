@@ -157,4 +157,5 @@ cython_debug/
 work/
 **/.DS_Store
 
-# seed/data/*.csv
+logs/
+

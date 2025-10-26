@@ -4,10 +4,14 @@ from flask import (
 )
 from datetime import datetime
 import threading
+import shutil
+import os
 from engine.orchestrator import start_run, get_run_state
 from config.loader import ConfigStore
 from providers.soax import CatalogStore, refresh_catalog_data
 from logging_.engine_logger import get_engine_logger
+
+log = get_engine_logger()
 
 bp = Blueprint("routes", __name__)
 
@@ -84,7 +88,7 @@ def launch_run():
 
 @bp.get("/catalog")
 def catalog():
-    # Используем get_countries() для загрузки всего кэша
+    # используем get_countries() для загрузки всего кеша
     return render_template("catalog.html", catalog=CatalogStore._load_or_cache(force_reload=True))
 
 
@@ -145,5 +149,46 @@ def api_get_isps():
     country = request.args.get("country")
     if not country:
         return jsonify([])
-    # Возвращаем список строк
     return jsonify(CatalogStore.get_isps(country))
+
+
+@bp.post("/logs/clear")
+def clear_logs():
+    """Удаляет содержимое /logs"""
+    cfg = ConfigStore.get()
+    logs_dir = os.path.abspath(cfg.paths.logs_dir)
+
+    log.warning(f"Attempting to clear contents of log directory: {logs_dir}")
+
+    # Проверка, что /logs существует и это действительно директория
+    if not os.path.isdir(logs_dir):
+        log.error(f"Log directory not found or is not a directory: {logs_dir}")
+        flash("Error: Log directory not found.", "error")
+        return jsonify({"success": False, "message": "Log directory not found"}), 500
+
+    if 'logs' not in logs_dir.split(os.path.sep)[-2:]:  # Проверим последние два компонента пути
+        log.error(f"Safety check failed: Log directory path seems unsafe: {logs_dir}")
+        flash("Error: Log directory path seems unsafe.", "error")
+        return jsonify({"success": False, "message": "Unsafe log directory path"}), 500
+
+    try:
+        # Удаляем все внутри /logs
+        for filename in os.listdir(logs_dir):
+            file_path = os.path.join(logs_dir, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                log.error(f"Failed to delete {file_path}. Reason: {e}")
+
+        log.info(f"Successfully cleared contents of log directory: {logs_dir}")
+        flash("Logs cleared successfully.", "success")
+        return jsonify({"success": True}), 200
+
+    except Exception as e:
+        log.error(f"Failed to clear log directory {logs_dir}: {e}", exc_info=True)
+        flash(f"Error clearing logs: {e}", "error")
+        return jsonify({"success": False, "message": str(e)}), 500
+

@@ -25,19 +25,15 @@ def _catalog_path() -> str:
         return "./data/catalog/soax_geo.json"
 
 
-# --- ХЕЛПЕРЫ ДЛЯ НОРМАЛИЗАЦИИ ДАННЫХ API (ИСПРАВЛЕНЫ) ---
+# хелперы для нормализации входящих данных
 
 def _normalize_regions(api_regions: List[str]) -> List[Dict[str, str]]:
-    """
-    Преобразует '["moscow", "new+york"]'
-    в '[{"code": "moscow", "name": "Moscow"}, {"code": "new+york", "name": "New York"}]'
-    """
     if not api_regions:
         return []
 
     regions = []
     for slug in api_regions:
-        if not isinstance(slug, str): continue  # Пропускаем, если API вернул что-то не то
+        if not isinstance(slug, str): continue  # пропускаем, если API вернул что-то не то
         # Создаем "Name" из "slug"
         name = slug.replace('+', ' ').title()
         regions.append({"code": slug, "name": name})
@@ -45,10 +41,6 @@ def _normalize_regions(api_regions: List[str]) -> List[Dict[str, str]]:
 
 
 def _normalize_cities(api_cities: List[str]) -> List[Dict[str, str]]:
-    """
-    Преобразует '["mamak", "los+angeles"]'
-    в '[{"code": "mamak", "name": "Mamak"}, {"code": "los+angeles", "name": "Los Angeles"}]'
-    """
     if not api_cities:
         return []
 
@@ -62,7 +54,7 @@ def _normalize_cities(api_cities: List[str]) -> List[Dict[str, str]]:
 
 def _normalize_isps(api_isps: List[str]) -> List[str]:
     """
-    API возвращает список строк, что нам и нужно.
+    API возвращает список строк, что нам собсно и нужно.
     Просто фильтруем не-строковые значения.
     """
     if not api_isps:
@@ -178,7 +170,7 @@ class CatalogStore:
         log.info("SOAX catalog refresh finished successfully.")
 
 
-# --- ФУНКЦИЯ ДЛЯ ЗАПУСКА В ФОНОВОМ ПОТОКЕ ---
+# функция запуска в фоновом потоке (интересно, взлетит или буду ипацца два дня?) :)
 def refresh_catalog_data():
     """Точка входа для Thread, вызывает обновление."""
     try:

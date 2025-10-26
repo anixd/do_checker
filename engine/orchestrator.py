@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Dict, Any
 from config.loader import ConfigStore
 from logging_.engine_logger import get_engine_logger
-from logging_.summary_writer import write_run_summary
+# from logging_.summary_writer import write_run_summary
 from .worker import execute_check
 
 _engine_logger = get_engine_logger()
@@ -75,7 +75,6 @@ def _run_checks_async(run_params: dict[str, Any], run_id: str):
             "isp": task_params.get("isp")
         })
 
-        # --- ВЫПОЛНЕНИЕ ПРОВЕРКИ ---
         try:
             res = execute_check(task_specific_params)
         except Exception as e:
@@ -89,6 +88,17 @@ def _run_checks_async(run_params: dict[str, Any], run_id: str):
                 "png_path": None,
             }
 
+        png_relative_path = None
+        if res.get("png_path"):
+            # Получаем относительный путь от базовой директории логов
+            # Например, /app/logs/2025-10-26/img.png -> 2025-10-26/img.png
+            try:
+                png_relative_path = os.path.relpath(res["png_path"], cfg.paths.logs_dir)
+                png_relative_path = png_relative_path.replace(os.path.sep, '/')
+            except ValueError:
+                _engine_logger.error(f"[{run_id}] Could not get relative path for screenshot: {res['png_path']}")
+                png_relative_path = os.path.basename(res["png_path"])  # fallback на старое поведение
+
         row = {
             "url": u,
             "result": res["classification"],
@@ -96,13 +106,13 @@ def _run_checks_async(run_params: dict[str, Any], run_id: str):
             "ttfb_ms": res.get("timings", {}).get("ttfb_ms"),
             "ext_ip": res.get("proxy_ext_ip") or "-",
             "md_name": os.path.basename(res["md_path"]),
-            "png_name": os.path.basename(res["png_path"]) if res.get("png_path") else "",
+            "png_name": png_relative_path if png_relative_path else "",
             "notes": res.get("notes")  # Передаем 'notes' в UI
         }
         _sse_emit(run_id, {"type": "check_finished", "run_id": run_id, **row})
         return row
 
-    # --- ПУЛ ПОТОКОВ ДЛЯ ПРОВЕРОК ---
+    # пул потоков для проверок
     with ThreadPoolExecutor(max_workers=cfg.execution.max_concurrency) as pool:
         futs = [pool.submit(worker_task, u) for u in urls]
         for fut in as_completed(futs):
@@ -115,14 +125,16 @@ def _run_checks_async(run_params: dict[str, Any], run_id: str):
             except Exception as e:
                 _engine_logger.error(f"[{run_id}] Future failed: {e}", exc_info=True)
 
-    # --- ЗАВЕРШЕНИЕ ЗАПУСКА ---
+    # завершение запуска
     st = _runs_state[run_id]
-    try:
-        summary_path = write_run_summary(cfg.paths.logs_dir, st["rows"])
-        summary_name = os.path.basename(summary_path)
-    except Exception as e:
-        _engine_logger.error(f"[{run_id}] Failed to write summary: {e}", exc_info=True)
-        summary_name = "error.md"
+
+    # try:
+        # summary_path = write_run_summary(cfg.paths.logs_dir, st["rows"])
+        # summary_name = os.path.basename(summary_path) # если понадобится summary-лог, раскомментировать это и импорт
+    # except Exception as e:
+    #     _engine_logger.error(f"[{run_id}] Failed to write summary: {e}", exc_info=True)
+    #     summary_name = "error.md"
+    summary_name = None
 
     _sse_emit(run_id, {"type": "run_finished", "run_id": run_id,
                        "totals": {"ok": sum(1 for r in st["rows"] if r["result"] == "success"),
@@ -130,7 +142,7 @@ def _run_checks_async(run_params: dict[str, Any], run_id: str):
                                   "time_ms": int((time.time() - st["started_at"]) * 1000)},
                        "summary": summary_name})
 
-    # Отписываемся от SSE, чтобы позволить Response() завершиться
+    # отписываемся от SSE, чтобы позволить Response() завершиться
     sse_unsubscribe(run_id)
 
 
@@ -155,17 +167,17 @@ def start_run(run_params: dict[str, Any]) -> str:
     # Удаляем 'urls' из настроек, которые пойдут в SSE
     settings_for_sse = {k: v for k, v in run_params.items() if k != 'urls'}
 
-    # Создаем очередь SSE *до* запуска потока
+    # Создаем очередь SSE _до_ запуска потока
     sse_subscribe(run_id)
 
     _sse_emit(run_id, {"type": "run_started", "run_id": run_id, "ts": datetime.now().isoformat(timespec="seconds"),
                        "settings": settings_for_sse})
 
-    # --- ЗАПУСК В ФОНОВОМ ПОТОКЕ ---
+    # запук в фоновом потоке
     thread = threading.Thread(
         target=_run_checks_async,
         args=(run_params, run_id),
-        daemon=True  # Поток умрет, если Gunicorn (главный поток) умрет
+        daemon=True  # Поток умрет, если gunicorn (главный поток) умрет
     )
     thread.start()
 
