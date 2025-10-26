@@ -29,6 +29,7 @@ screenshots:
   max_workers: 1
   width: 1366
   height: 768
+  timeout_sec: 30
 soax:
   host: proxy.soax.com
   port_default_port: 9000

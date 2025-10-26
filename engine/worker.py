@@ -1,9 +1,13 @@
 from __future__ import annotations
-import os, socket, time, urllib.parse
+import os
+import socket
+import time
+import urllib.parse
 import requests
+import threading
 from datetime import datetime
 from typing import Any
-from providers.soax import get_session
+from providers.soax import get_session, ProxySession
 from config.loader import ConfigStore
 from logging_.md_writer import ensure_day_dir, unique_file_path, render_md_card
 from logging_.engine_logger import get_engine_logger
@@ -15,6 +19,10 @@ except Exception:
 
 log = get_engine_logger()
 
+# create global semaphore
+screenshot_semaphore: threading.Semaphore | None = None
+_semaphore_lock = threading.Lock()  # lock for initializing the semaphore
+
 
 def _normalize_url(raw: str) -> tuple[str, str]:
     if "://" not in raw:
@@ -23,26 +31,12 @@ def _normalize_url(raw: str) -> tuple[str, str]:
 
 
 def _requests_proxies(ps: ProxySession, dns_mode: str) -> dict:
-    """
-    Собирает словарь прокси для `requests`
-    ps: dataclass ProxySession
-    dns_mode: 'proxy' или 'local'
-    """
     auth = f"{ps.username}:{ps.password}@"
-
     if ps.type == "socks5":
-        # SOCKS5 → запросы уходят через socks5h://
-        # DNS-режим: `via proxy` или `local`.
-        # requests[socks] использует 'socks5h://' для DNS через прокси
-        # и 'socks5://' для локального DNS.
         scheme = "socks5h" if dns_mode == "proxy" else "socks5"
     else:
-        # По умолчанию HTTP
         scheme = "http"
-
     proxy_url = f"{scheme}://{auth}{ps.host}:{ps.port}"
-
-    # requests использует ключи 'http' и 'https' для *всех* типов прокси
     return {"http": proxy_url, "https": proxy_url}
 
 
@@ -51,7 +45,6 @@ def _measure_http(url: str, proxies: dict, timeout_sec: int, max_redirects: int 
     redirects = []
     http_status = None
     bytes_count = None
-
     cfg = ConfigStore.get()
     headers = {
         "User-Agent": cfg.http_client.user_agent,
@@ -62,23 +55,18 @@ def _measure_http(url: str, proxies: dict, timeout_sec: int, max_redirects: int 
         "Upgrade-Insecure-Requests": "1",
         "DNT": "1",
     }
-
     sess = requests.Session()
     sess.max_redirects = max_redirects
     sess.headers.update(headers)
-
     start = time.time()
-
     try:
         resp = sess.get(url, proxies=proxies, timeout=timeout_sec, stream=True, allow_redirects=True)
-
         http_status = resp.status_code
         first_chunk = next(resp.iter_content(chunk_size=1024), b"")
         ttfb = time.time() - start
         timings["ttfb_ms"] = int(ttfb * 1000)
         content = first_chunk + resp.content
         bytes_count = len(content)
-
         redirects = []
         for r in resp.history:
             redirects.append((r.status_code, r.url, r.headers.get('Location', '')))
@@ -89,20 +77,16 @@ def _measure_http(url: str, proxies: dict, timeout_sec: int, max_redirects: int 
             if len(redirects) > 1 and redirects[-1][1] == redirects[-2][2]:
                 redirects.pop(-2)
                 redirects[-1] = (redirects[-1][0], redirects[-2][1], redirects[-1][2])
-
     except requests.exceptions.RequestException as e:
         end = time.time()
         timings["total_ms"] = int((end - start) * 1000)
         raise e
-
     end = time.time()
     timings["total_ms"] = int((end - start) * 1000)
-
     return http_status, bytes_count, redirects, timings
 
 
 def _classify(exc: Exception | None, http_status: int | None, timeout_sec: int) -> str:
-    # ... (без изменений) ...
     if exc:
         s = str(exc).lower()
         if "name or service not known" in s or "nodename nor servname" in s or "dns" in s:
@@ -121,31 +105,53 @@ def _classify(exc: Exception | None, http_status: int | None, timeout_sec: int) 
     return "http_error"
 
 
-def _take_screenshot(ps, url: str, out_path: str, timeout_ms: int, width: int, height: int):
+def _take_screenshot(
+        ps: ProxySession, url: str, out_path: str, screenshot_timeout_sec: int, width: int, height: int
+) -> tuple[bool, str | None]:
     if not sync_playwright:
-        return False, "playwright not installed"
+        return False, "playwright not installed or failed to import"
 
-    cfg = ConfigStore.get()  # <-- Получаем конфиг
+    cfg = ConfigStore.get()
+
+    playwright_proxy = {
+        "server": f"{ps.type}://{ps.host}:{ps.port}",
+        "username": ps.username,
+        "password": ps.password
+    }
 
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             ctx = browser.new_context(
                 viewport={"width": width, "height": height},
-                user_agent=cfg.http_client.user_agent
+                user_agent=cfg.http_client.user_agent,
+                proxy=playwright_proxy
             )
             page = ctx.new_page()
-            page.set_default_navigation_timeout(timeout_ms)
+            # Use screenshot timeout (convert to ms)
+            page.set_default_navigation_timeout(screenshot_timeout_sec * 1000)
             page.goto(url, wait_until="load")
-            page.screenshot(path=out_path, full_page=True)
+            page.screenshot(path=out_path) # full_page=True делает скрин ВСЕЙ высоты страницы (если нужно)
             browser.close()
         return True, None
     except Exception as e:
+        log.error(f"Screenshot failed for {url}: {e}")
         return False, str(e)
 
 
 def execute_check(run_params: dict[str, Any]) -> dict:
+    global screenshot_semaphore
     cfg = ConfigStore.get()
+
+    # initialize semaphore if needed
+    if screenshot_semaphore is None:
+        with _semaphore_lock:  # prevent race condition on first init
+            if screenshot_semaphore is None:
+                max_workers = cfg.screenshots.max_workers
+                log.info(f"Initializing screenshot semaphore with max_workers={max_workers}")
+                screenshot_semaphore = threading.Semaphore(max_workers)
+    # end semaphore init
+
     logs_dir = cfg.paths.logs_dir
     day_dir = ensure_day_dir(logs_dir)
 
@@ -164,7 +170,6 @@ def execute_check(run_params: dict[str, Any]) -> dict:
 
     ps = None
     debug_data = None
-
     http_status = None
     bytes_count = None
     redirects = []
@@ -177,7 +182,6 @@ def execute_check(run_params: dict[str, Any]) -> dict:
         debug_data = ps.debug_info
         proxies = _requests_proxies(ps, dns_mode)
         http_status, bytes_count, redirects, timings = _measure_http(url_full, proxies, timeout_sec)
-
     except Exception as e:
         exc = e
         notes = str(e)
@@ -186,12 +190,22 @@ def execute_check(run_params: dict[str, Any]) -> dict:
 
     result = _classify(exc, http_status, timeout_sec)
 
+    # логика скриншота, с семафором
     if make_screenshot and result == "success":
         png_path = unique_file_path(day_dir, base_name, "png")
-        ok, s_err = _take_screenshot(ps, url_full, png_path, timeout_sec * 1000, cfg.screenshots.width,
-                                     cfg.screenshots.height)
+        screenshot_timeout = cfg.screenshots.timeout_sec
+
+        log.info(f"Acquiring screenshot semaphore for {url}...")
+        with screenshot_semaphore:
+            log.info(f"Semaphore acquired for {url}. Taking screenshot...")
+            ok, s_err = _take_screenshot(
+                ps, url_full, png_path, screenshot_timeout,
+                cfg.screenshots.width, cfg.screenshots.height
+            )
+            log.info(f"Semaphore released for {url}.")
+
         if not ok:
-            png_path = None
+            png_path = None  # Don't link to failed screenshot
             if notes:
                 notes += f" | screenshot: {s_err}"
             else:
@@ -199,13 +213,12 @@ def execute_check(run_params: dict[str, Any]) -> dict:
 
     geo_str = f"{run_params.get('country') or '-'} / {run_params.get('region_code') or '(any)'} / {run_params.get('city') or '(any)'} / ISP: {run_params.get('isp') or '(any)'}"
     proxy_str = f"SOAX Port-Mode, ext_ip: {ps.ext_ip if ps else '-'}"
-
     md_text = render_md_card(
         domain=domain,
         started=datetime.now().isoformat(timespec="seconds"),
         geo_str=geo_str,
         proxy_str=proxy_str,
-        dns_mode=run_params.get("dns_mode"),
+        dns_mode=dns_mode,
         timeout_sec=timeout_sec,
         url_show=url_full,
         redirects=redirects,
