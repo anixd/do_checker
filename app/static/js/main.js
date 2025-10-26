@@ -69,9 +69,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // перехват формы и SSE
     const form = document.getElementById("check-form");
+    const resetButton = document.getElementById("reset-form-button");
     const runButton = document.getElementById("run-button");
     const resultsContainer = document.getElementById("results-container");
     let currentEventSource = null;
+
+    if (form && resetButton && regionSelect && citySelect && ispSelect) {
+        form.addEventListener("reset", (event) => {
+            // Стандартный сброс (<input>, <textarea>, <select>) уже произошел.
+            // Нам нужно дополнительно обработать зависимые дропдауны.
+
+            // Используем setTimeout, чтобы наш код сработал *после*
+            // стандартного сброса браузером.
+            setTimeout(() => {
+                // Сбрасываем и дизейблим зависимые дропдауны
+                populateSelect(regionSelect, [], 'region');
+                populateSelect(citySelect, [], 'city');
+                populateSelect(ispSelect, [], 'isp');
+
+                // Опционально: Очистить контейнер результатов
+                const resultsContainer = document.getElementById("results-container");
+                if (resultsContainer) {
+                    resultsContainer.innerHTML = '';
+                }
+
+                // Опционально: Вернуть фокус на первое поле (textarea)
+                const urlsTextarea = document.getElementById("urls");
+                if (urlsTextarea) {
+                    urlsTextarea.focus();
+                }
+            }, 0); // Нулевая задержка выполнит код после текущего цикла событий
+        });
+    }
     
     // получим URL для EventSource из data-атрибута
     const eventsUrlBase = document.body.dataset.eventsUrl || '/events/'; // базовый URL без run_id

@@ -111,8 +111,9 @@
 
     <div class="row" style="justify-content: space-between; align-items: center;">
        <div>
-          <button type="submit" id="run-button">Run checks</button>
-          <button type="button" id="clear-logs-button" class="button-secondary ml-2" data-clear-url="{{ url_for('routes.clear_logs') }}">Clear logs</button>
+          <button type="submit" id="run-button">Run check</button>
+          <button type="button" id="clear-logs-button" class="button-secondary ml-4" data-clear-url="{{ url_for('routes.clear_logs') }}">Clear logs</button>
+          <button type="reset" id="reset-form-button" class="button-secondary ml-4">Reset Form</button>
        </div>
     </div>
     <p class="muted">Files will be saved under {{ logs_dir }}</p>
