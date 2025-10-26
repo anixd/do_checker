@@ -22,9 +22,27 @@ def _normalize_url(raw: str) -> tuple[str, str]:
     return urllib.parse.urlsplit(raw).netloc, raw
 
 
-def _requests_proxies(ps, scheme: str):
+def _requests_proxies(ps: ProxySession, dns_mode: str) -> dict:
+    """
+    Собирает словарь прокси для `requests`
+    ps: dataclass ProxySession
+    dns_mode: 'proxy' или 'local'
+    """
     auth = f"{ps.username}:{ps.password}@"
+
+    if ps.type == "socks5":
+        # SOCKS5 → запросы уходят через socks5h://
+        # DNS-режим: `via proxy` или `local`.
+        # requests[socks] использует 'socks5h://' для DNS через прокси
+        # и 'socks5://' для локального DNS.
+        scheme = "socks5h" if dns_mode == "proxy" else "socks5"
+    else:
+        # По умолчанию HTTP
+        scheme = "http"
+
     proxy_url = f"{scheme}://{auth}{ps.host}:{ps.port}"
+
+    # requests использует ключи 'http' и 'https' для *всех* типов прокси
     return {"http": proxy_url, "https": proxy_url}
 
 
@@ -135,6 +153,7 @@ def execute_check(run_params: dict[str, Any]) -> dict:
     timeout_sec = run_params["timeout_sec"]
     make_screenshot = run_params["make_screenshot"]
     debug_mode = run_params.get("debug_mode", False)
+    dns_mode = run_params.get("dns_mode", "proxy")
 
     domain, url_full = _normalize_url(url)
     ts = datetime.now().strftime("%H-%M-%S")
@@ -156,10 +175,7 @@ def execute_check(run_params: dict[str, Any]) -> dict:
     try:
         ps = get_session(run_params)
         debug_data = ps.debug_info
-
-        scheme = "http"  # TBD: SOCKS5
-        proxies = _requests_proxies(ps, scheme)
-
+        proxies = _requests_proxies(ps, dns_mode)
         http_status, bytes_count, redirects, timings = _measure_http(url_full, proxies, timeout_sec)
 
     except Exception as e:

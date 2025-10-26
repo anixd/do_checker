@@ -1,11 +1,13 @@
 from flask import (
     Blueprint, render_template, request, redirect,
-    url_for, Response, jsonify
+    url_for, Response, jsonify, flash
 )
 from datetime import datetime
+import threading
 from engine.orchestrator import start_run, get_run_state
 from config.loader import ConfigStore
-from providers.soax import CatalogStore
+from providers.soax import CatalogStore, refresh_catalog_data
+from logging_.engine_logger import get_engine_logger
 
 bp = Blueprint("routes", __name__)
 
@@ -83,13 +85,26 @@ def launch_run():
 @bp.get("/catalog")
 def catalog():
     # Используем get_countries() для загрузки всего кэша
-    return render_template("catalog.html", catalog=CatalogStore._load_or_cache())
+    return render_template("catalog.html", catalog=CatalogStore._load_or_cache(force_reload=True))
 
 
 @bp.post("/catalog/refresh")
 def catalog_refresh():
-    # TBD: Эта функция сейчас ничего не делает, т.к. refresh_catalog() был заглушкой
-    # CatalogStore.refresh()
+    """
+    Запускает обновление каталога в фоновом потоке.
+    """
+    log = get_engine_logger()
+    log.info("Received request to refresh catalog. Starting background thread...")
+
+    # запускаем тяжелую задачу в отдельном потоке
+    thread = threading.Thread(
+        target=refresh_catalog_data,
+        daemon=True
+    )
+    thread.start()
+
+    flash("Catalog refresh started in the background. It may take a minute.", "info")
+
     return redirect(url_for("routes.catalog"))
 
 

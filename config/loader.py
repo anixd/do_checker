@@ -46,6 +46,8 @@ class SoaxCfg:
     port_sticky: int
     package_id: str | None
     session_password: str | None
+    api_key: str | None
+    package_key: str | None
 
 
 # --- НОВЫЙ DATACLASS ---
@@ -96,6 +98,8 @@ class ConfigStore:
                 "port_sticky": 5000,
                 "package_id": None,
                 "session_password": None,
+                "api_key": None,
+                "package_key": None
             }
         if "http_client" not in data:
             data["http_client"] = {
@@ -140,8 +144,8 @@ class ConfigStore:
             "SOAX_PORT_STICKY": (cfg.soax, "port_sticky", int),
             "SOAX_PACKAGE_ID": (cfg.soax, "package_id"),
             "SOAX_SESSION_PASSWORD": (cfg.soax, "session_password"),
-
-            # --- ДОБАВЛЕН OVERRIDE ДЛЯ USER_AGENT ---
+            "SOAX_API_KEY": (cfg.soax, "api_key"),
+            "SOAX_PACKAGE_KEY": (cfg.soax, "package_key"),
             "USER_AGENT": (cfg.http_client, "user_agent"),
         }
 

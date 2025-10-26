@@ -2,10 +2,15 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>mirror_checker</title>
+  <title>DutyOps Checker</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; max-width: 960px; }
-    textarea { width: 100%; height: 140px; box-sizing: border-box; }
+    textarea {
+        width: 100%;
+        height: 180px;
+        box-sizing: border-box;
+        font-size: 16px;
+    }
     .row { display:flex; gap:12px; align-items:flex-end; flex-wrap: wrap; margin-bottom: 12px;}
     .muted { color:#666; font-size:12px; }
     label { font-size:14px; display:block; margin-bottom: 4px; font-weight: 500;}
@@ -49,7 +54,7 @@
     nav.tabs a:hover { background-color: #f0f0f0; }
     nav.tabs a.active {
         border-color: #08244e;
-        background-color: #5ba0ea;
+        background-color: #72b2e2;
     }
 
     #results-container { margin-top: 24px; }
@@ -77,6 +82,15 @@
         font-size: 14px;
         color: #555;
     }
+    .warn { color: #920404; }
+    .bold { font-weight: bold; }
+    .ital { font-style: italic; }
+    .mb-1 { margin-bottom: 8px; }
+    .mb-2 { margin-bottom: 16px; }
+    .mb-3 { margin-bottom: 24px; }
+    .mt-1 { margin-top: 8px; }
+    .mt-2 { margin-top: 16px; }
+    .mt-3 { margin-top: 24px; }
   </style>
 </head>
 <body>
@@ -95,7 +109,7 @@
       <legend>Check Parameters</legend>
       <div class="form-group">
         <label for="urls">URL(s), one per line</label>
-        <textarea name="urls" id="urls" placeholder="somesite.com&#10;othersite.org"></textarea>
+        <textarea name="urls" id="urls" placeholder="some-site.com&#10;other-site.org"></textarea>
       </div>
     </fieldset>
 
@@ -174,16 +188,22 @@
         <div class="form-group">
           <label style="visibility: hidden;">_</label>
           <label>
-            <input type="checkbox" name="make_screenshot" {% if defaults.screenshots_enabled %}checked{% endif %}/> Screenshots
-          </label>
-        </div>
-        <div class="form-group">
-          <label style="visibility: hidden;">_</label>
-          <label>
-            <input type="checkbox" name="debug_mode" {% if request.args.get('debug') %}checked{% endif %}/> Debug Mode
+            <input type="checkbox" name="make_screenshot" {% if defaults.screenshots_enabled %}checked{% endif %}/>
+            <span class="warn ital">Screenshots (coming soon)</span>
           </label>
         </div>
       </div>
+
+      <hr />
+
+      <div class="form-group">
+          <label style="visibility: hidden;">_</label>
+          <label>
+            <input type="checkbox" name="debug_mode" {% if request.args.get('debug') %}checked{% endif %}/>
+            <span class="warn bold">Debug Mode</span>
+          </label>
+        </div>
+
       <div class="row" style="display: none;">
         <div class="form-group">
           <label for="sticky_policy">Sticky</label>
@@ -210,7 +230,7 @@
     </div>
 
 <script>
-  // --- СКРИПТ ДЛЯ КАСКАДНЫХ ДРОПДАУНОВ (без изменений) ---
+  // каскадный дропдаун
   document.addEventListener("DOMContentLoaded", () => {
     const countrySelect = document.getElementById("country");
     const regionSelect = document.getElementById("region");
@@ -262,14 +282,12 @@
     });
   });
 
-  // --- НОВЫЙ СКРИПТ ДЛЯ ПЕРЕХВАТА ФОРМЫ И SSE ---
   document.addEventListener("DOMContentLoaded", () => {
     const form = document.getElementById("check-form");
     const runButton = document.getElementById("run-button");
     const resultsContainer = document.getElementById("results-container");
     let currentEventSource = null;
 
-    // --- 1. Рендеринг карточек ---
     const renderCard = (payload) => {
         // Создаем div-карточку
         const card = document.createElement("div");
@@ -307,14 +325,11 @@
             </div>
         `;
 
-        // TBD: Ссылки /logs/... не работают, т.к. Flask не раздает статику из /logs.
-        // Пока скроем их.
         card.querySelector('.links').style.display = 'none';
 
         return card;
     };
 
-    // --- 2. Рендеринг заголовка ---
     const renderHeader = (payload) => {
         const header = document.createElement("div");
         header.className = "result-header";
@@ -326,14 +341,13 @@
         return header;
     };
 
-    // --- 3. Перехват формы ---
     form.addEventListener("submit", async (e) => {
-        e.preventDefault(); // Отменяем обычную отправку
+        e.preventDefault();
 
         // Блокируем кнопку
         runButton.disabled = true;
         runButton.textContent = "Running...";
-        resultsContainer.innerHTML = ""; // Очищаем старые результаты
+        resultsContainer.innerHTML = "";
 
         // Закрываем старый SSE, если он был
         if (currentEventSource) {
@@ -367,7 +381,6 @@
         const data = await response.json();
         const runId = data.run_id;
 
-        // --- 4. Подключение к SSE ---
         currentEventSource = new EventSource(`/events/${runId}`);
 
         currentEventSource.onmessage = (event) => {
