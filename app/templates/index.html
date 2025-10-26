@@ -98,12 +98,16 @@
         </div>
         <div class="form-group">
           <label style="visibility: hidden;">_</label>
-          <label> <input type="checkbox" name="make_screenshot" {% if defaults.screenshots_enabled %}checked{% endif %}/> Screenshots </label>
+          <label> <input type="checkbox" name="make_screenshot" {% if defaults.screenshots_enabled %}checked{% endif %}/>
+              <span>Make Screenshots </span>
+          </label>
         </div>
       </div>
       <div class="form-group">
         <label style="visibility: hidden;">_</label>
-        <label> <input type="checkbox" name="debug_mode" {% if request.args.get('debug') %}checked{% endif %}/> <span class="text-danger">Debug Mode</span> </label>
+        <label> <input type="checkbox" name="debug_mode" {% if request.args.get('debug') %}checked{% endif %}/>
+            <span class="text-danger">Debug Mode</span>
+        </label>
       </div>
       <div class="row" style="display: none;">
       </div>
@@ -116,7 +120,7 @@
           <button type="reset" id="reset-form-button" class="button-secondary ml-4">Reset Form</button>
        </div>
     </div>
-    <p class="muted">Files will be saved under {{ logs_dir }}</p>
+    <p class="muted">Check log files will be saved under <span class="code">.{{ logs_dir }}</span> directory within project's location.</p>
   </form>
 
   <div id="results-container" class="mt-3">

@@ -104,3 +104,4 @@ button.button-secondary:hover { background: #5a6268; }
 .mt-2 { margin-top: 16px; }
 .mt-3 { margin-top: 24px; }
 .text-danger { color: #dc3545; font-weight: bold; }
+.code { font-family: monospace; font-size: 12px; color: #00b614; }
