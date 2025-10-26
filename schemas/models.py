@@ -1,3 +1,7 @@
+from datetime import datetime
+from typing import Literal
+
+
 class Timings:
     dns_ms: int | None
     tcp_ms: int | None
@@ -15,7 +19,7 @@ class ProxySession:
     ext_ip: str | None
 
 class CheckInput:
-    url: str                # как введено (может быть без схемы)
+    url: str                # как введено юзером (может быть без schema)
     country: str            # ISO2
     region_code: str | None
     isp: str | None

@@ -1,0 +1,99 @@
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; max-width: 960px; }
+textarea { width: 100%; height: 140px; box-sizing: border-box; font-size: 16px; }
+.row { display:flex; gap:12px; align-items:flex-end; flex-wrap: wrap; margin-bottom: 12px;}
+.muted { color:#666; font-size:12px; }
+label { font-size:14px; display:block; margin-bottom: 4px; font-weight: 500;}
+fieldset { border: 1px solid #ccc; border-radius: 8px; margin-bottom: 16px; padding: 16px;}
+legend { font-weight: bold; padding: 0 8px; }
+input[type="text"], input[type="number"], select {
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid #aaa;
+    min-width: 150px;
+}
+button[type="submit"], button[type="button"] {
+    padding: 8px 16px;
+    background: #007aff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+}
+button[type="submit"]:hover, button[type="button"]:hover { background: #0056b3; }
+button[type="submit"]:disabled { background: #999; cursor: not-allowed; }
+.form-group { display: flex; flex-direction: column; }
+
+nav.tabs {
+    border-bottom: 2px solid #ddd;
+    margin-bottom: 20px;
+}
+nav.tabs a {
+    display: inline-block;
+    padding: 8px 16px;
+    text-decoration: none;
+    color: #333;
+    border: 2px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    font-weight: 500;
+    position: relative;
+    top: 2px;
+}
+nav.tabs a:hover { background-color: #f0f0f0; }
+nav.tabs a.active {
+    border-color: #0634bd;
+    background-color: #7b9fff;
+}
+
+/* результаты проверок */
+#results-container { margin-top: 24px; }
+.result-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: 40px 1fr 100px 150px;
+    gap: 16px;
+    align-items: center;
+}
+.result-card strong { font-size: 1.1em; }
+.result-card .status { font-weight: bold; }
+.result-card .status-icon { font-size: 24px; }
+.status-success { color: #0a7d00; }
+.status-error { color: #b00020; }
+.result-card .timings { font-size: 13px; color: #333; }
+.result-header {
+    grid-column: 1 / -1;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+    color: #555;
+}
+.screenshot-preview {
+    text-align: center;
+}
+.screenshot-preview img {
+    max-width: 100%;
+    max-height: 60px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Clear Logs */
+ button.button-secondary {
+    background-color: #df3737;
+}
+button.button-secondary:hover { background: #5a6268; }
+.ml-2 { margin-left: 16px; }
+
+/* --- Utility classes --- */
+.mb-1 { margin-bottom: 8px; }
+.mb-2 { margin-bottom: 16px; }
+.mb-3 { margin-bottom: 24px; }
+.mt-1 { margin-top: 8px; }
+.mt-2 { margin-top: 16px; }
+.mt-3 { margin-top: 24px; }
+.text-danger { color: #dc3545; font-weight: bold; }

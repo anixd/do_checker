@@ -22,7 +22,7 @@ class SoaxApiClient:
 
         if not self.api_key or not self.package_key:
             log.error("SOAX_API_KEY or SOAX_PACKAGE_KEY are not set in .env")
-            # Мы не падаем, но is_configured() вернет False
+            # не падаем, но is_configured() вернет False
 
         self.user_agent = cfg.http_client.user_agent
         self.session = requests.Session()
@@ -38,28 +38,22 @@ class SoaxApiClient:
             log.error(f"SOAX API call to {endpoint} skipped: API keys not configured.")
             return None
 
-        # Добавляем ключи в каждый запрос
+        # добавляем ключи в каждый запрос
         params["api_key"] = self.api_key
         params["package_key"] = self.package_key
 
         try:
             response = self.session.get(f"{BASE_URL}{endpoint}", params=params, timeout=30)
 
-            # 1. Проверяем на ошибки 4xx/5xx
+            # 1. проверяем на ошибки 4xx/5xx
             response.raise_for_status()
 
-            # 2. Пытаемся парсить JSON
+            # 2. пытаемся парсить json
             try:
                 data = response.json()
-                # --- ИСПРАВЛЕНИЕ ---
-                # Geo-API (get-country-...) возвращает список [ ... ] напрямую,
-                # а не объект {"status": ..., "data": ...}.
-                # Поэтому мы просто возвращаем данные как есть.
                 return data
-                # --- КОНЕЦ ИСПРАВЛЕНИЯ ---
 
             except requests.exceptions.JSONDecodeError as e:
-                # Сервер вернул 200 OK, но НЕ JSON
                 log.error(
                     f"SOAX API invalid JSON response for {endpoint}. Status: {response.status_code}, Text: {response.text[:200]}...")
                 return None

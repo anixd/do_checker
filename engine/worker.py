@@ -21,7 +21,7 @@ log = get_engine_logger()
 
 # create global semaphore
 screenshot_semaphore: threading.Semaphore | None = None
-_semaphore_lock = threading.Lock()  # lock for initializing the semaphore
+_semaphore_lock = threading.Lock()  # lock для инициализации семафора
 
 
 def _normalize_url(raw: str) -> tuple[str, str]:
@@ -205,7 +205,7 @@ def execute_check(run_params: dict[str, Any]) -> dict:
             log.info(f"Semaphore released for {url}.")
 
         if not ok:
-            png_path = None  # Don't link to failed screenshot
+            png_path = None  # don't link to failed screenshot !!!
             if notes:
                 notes += f" | screenshot: {s_err}"
             else:
