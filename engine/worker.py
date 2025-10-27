@@ -25,9 +25,22 @@ _semaphore_lock = threading.Lock()  # lock для инициализации с�
 
 
 def _normalize_url(raw: str) -> tuple[str, str]:
+    """
+    Ensures a URL has a scheme and extracts a clean netloc (domain)
+    for use in filenames.
+
+    Returns:
+        tuple[str, str]: (domain, full_url_for_request)
+    """
+    url_full = raw
     if "://" not in raw:
-        return raw, f"http://{raw}"
-    return urllib.parse.urlsplit(raw).netloc, raw
+        url_full = f"http://{raw}"
+
+    # Now that we guaranteed a scheme, parse it
+    parsed = urllib.parse.urlsplit(url_full)
+    domain = parsed.netloc
+
+    return domain, url_full
 
 
 def _requests_proxies(ps: ProxySession, dns_mode: str) -> dict:

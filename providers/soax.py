@@ -119,6 +119,53 @@ class CatalogStore:
         except Exception as e:
             log.error(f"Failed to save soax_geo.json to {_catalog_path()}: {e}")
 
+
+    @classmethod
+    def update_country_list(cls, final_codes: list[str]):
+        """
+        Rebuilds the countries list in soax_geo.json based on the provided list of codes.
+        Keeps existing data for known codes, creates stubs for new codes.
+        """
+        log.info(f"Updating catalog country list with {len(final_codes)} codes...")
+        try:
+            data = cls._load_or_cache(force_reload=True)
+
+            # Create a lookup map of old data
+            old_countries_map = {
+                c.get('code'): c
+                for c in data.get("countries", [])
+                if c.get('code')
+            }
+
+            new_countries_list = []
+
+            for code in final_codes:
+                if not code:  # Skip any empty strings
+                    continue
+
+                if code in old_countries_map:
+                    # Keep existing entry
+                    new_countries_list.append(old_countries_map[code])
+                else:
+                    # Add new geo entry (using code.upper() as name)
+                    log.info(f"Adding new geo for country code: {code}")
+                    new_geo = {
+                        "code": code,
+                        "name": code.upper(),
+                        "regions": [],
+                        "cities": [],
+                        "isps": []
+                    }
+                    new_countries_list.append(new_geo)
+
+            data["countries"] = new_countries_list
+            cls.save(data)
+            log.info("Catalog country list updated successfully.")
+
+        except Exception as e:
+            log.error(f"Failed to run update_country_list: {e}", exc_info=True)
+
+
     @classmethod
     def update_catalog_from_api(cls):
         """

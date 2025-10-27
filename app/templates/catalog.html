@@ -151,6 +151,38 @@
     .mt-2 { margin-top: 16px; }
     .mt-3 { margin-top: 24px; }
     .text-danger { color: #dc3545; font-weight: bold; }
+
+    /* Стили для новой формы */
+    fieldset { border: 1px solid #ccc; border-radius: 8px; margin-bottom: 16px; padding: 16px;}
+    legend { font-weight: bold; padding: 0 8px; }
+    .form-group { display: flex; flex-direction: column; }
+    input[type="text"] {
+        padding: 6px 8px;
+        border-radius: 4px;
+        border: 1px solid #aaa;
+        min-width: 150px;
+        font-size: 14px;
+    }
+    label.checkbox-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: normal;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+    }
+    label.checkbox-label:hover {
+        background-color: #f0f0f0;
+    }
+    label.checkbox-label input {
+        margin-right: 8px;
+    }
+    label.checkbox-label code {
+        background-color: #e0e0e0;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-size: 1.05em;
+    }
   </style>
 </head>
 <body>
@@ -178,12 +210,54 @@
     Generated At: {{ catalog.generated_at | default('N/A') }}
   </div>
 
+  {% set countries_list = catalog.countries | sort(attribute='name') %}
+
+  <form method="post" action="{{ url_for('routes.catalog_update_list') }}" class="mb-3">
+    <fieldset>
+        <legend>Manage Country List</legend>
+
+        <div class="form-group mb-2">
+            <label for="new_countries" style="font-weight: 500; margin-bottom: 4px;">
+              Add new countries (ISO-2 codes, space-separated)
+            </label>
+            <input type="text" name="new_countries" id="new_countries" placeholder="ua fr de" style="width: 100%; box-sizing: border-box;">
+        </div>
+
+        <details open>
+            <summary style="font-weight: 500;">Keep/Remove existing countries ({{ countries_list|length }})</summary>
+            <div class="form-group" style="padding: 10px 0 0 10px; max-height: 250px; overflow-y: auto; border-top: 1px solid #eee; margin-top: 10px;">
+                {% if countries_list %}
+                    {% for c in countries_list %}
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="countries_to_keep" value="{{ c.code }}" checked>
+                        <code>{{ c.code | upper }}</code> — {{ c.name }}
+                    </label>
+                    {% endfor %}
+                {% else %}
+                    <p class="muted">List is empty. Add countries using the field above.</p>
+                {% endif %}
+            </div>
+        </details>
+    </fieldset>
+
+    <button type="submit">Save List Changes</button>
+  </form>
+
+  <hr style="margin: 24px 0;">
+
+  <h3 style="margin-top: 0;">Refresh Data from SOAX API</h3>
+  <p class="muted" style="margin-top: -10px; margin-bottom: 10px;">
+    This will fetch new Regions, Cities, and ISPs for the countries saved in the list above.
+  </p>
   <form method="post" action="{{ url_for('routes.catalog_refresh') }}" class="mb-3">
     <button type="submit">Refresh from SOAX (in background)</button>
   </form>
 
-  {% if catalog.countries %}
-    {% for country in catalog.countries | sort(attribute='name') %}
+  <hr style="margin: 24px 0;">
+
+  <h3>Catalog Viewer</h3>
+  {% if countries_list %}
+    {% for country in countries_list %}
       <details>
         <summary>{{ country.code | upper }} — {{ country.name }}</summary>
         <div class="details-content">

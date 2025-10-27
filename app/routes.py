@@ -112,6 +112,50 @@ def catalog_refresh():
     return redirect(url_for("routes.catalog"))
 
 
+@bp.post("/catalog/update-list")
+def catalog_update_list():
+    """
+    Handles adding new countries and removing existing ones from the catalog JSON.
+    """
+    try:
+        new_countries_str = request.form.get("new_countries", "")
+        existing_countries_keep = request.form.getlist("countries_to_keep")
+
+        # 1. Process new countries (lowercase, split by any whitespace, remove blanks)
+        new_countries_list = [
+            code.strip().lower()
+            for code in new_countries_str.split()
+            if code.strip()
+        ]
+
+        # 2. Merge lists, preserving order and removing duplicates
+        final_codes_list = []
+        seen_codes = set()
+
+        # Add "kept" countries first
+        for code in existing_countries_keep:
+            if code not in seen_codes:
+                final_codes_list.append(code)
+                seen_codes.add(code)
+
+        # Add "new" countries if they weren't already in the "kept" list
+        for code in new_countries_list:
+            if code not in seen_codes:
+                final_codes_list.append(code)
+                seen_codes.add(code)
+
+        # 3. Save to CatalogStore
+        CatalogStore.update_country_list(final_codes_list)
+
+        flash("Catalog country list updated successfully.", "info")  # 'info' for blue flash
+
+    except Exception as e:
+        log.error(f"Failed to update catalog list: {e}", exc_info=True)
+        flash(f"Error updating catalog: {e}", "error")
+
+    return redirect(url_for("routes.catalog"))
+
+
 @bp.get("/settings")
 def settings():
     yaml = ConfigStore.raw_yaml()
