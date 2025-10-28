@@ -68,6 +68,9 @@ def _measure_http(url: str, proxies: dict, timeout_sec: int, max_redirects: int 
         "Upgrade-Insecure-Requests": "1",
         "DNT": "1",
     }
+
+    headers.update(cfg.http_client.custom_headers)
+
     sess = requests.Session()
     sess.max_redirects = max_redirects
     sess.headers.update(headers)
@@ -122,6 +125,7 @@ def _take_screenshot(
         return False, "playwright not installed or failed to import"
 
     cfg = ConfigStore.get()
+    wait_after_load_sec = cfg.screenshots.wait_after_load_sec
 
     playwright_proxy = {
         "server": f"{ps.type}://{ps.host}:{ps.port}",
@@ -140,7 +144,22 @@ def _take_screenshot(
             page = ctx.new_page()
             # Use screenshot timeout (convert to ms)
             page.set_default_navigation_timeout(screenshot_timeout_sec * 1000)
+
+            # screenshot issue
+            # page.goto(url, wait_until="networkidle")
+
+            # 1. ждем спиннера
             page.goto(url, wait_until="load")
+
+            # 2. если в конфиге > 0, ждем принудительно
+            if wait_after_load_sec > 0:
+                log.debug(
+                    f"Waiting for {wait_after_load_sec}s (wait_after_load_sec) "
+                    f"for SPA content on {url}"
+                )
+                # Playwright ждет миллисекунды
+                page.wait_for_timeout(wait_after_load_sec * 1000)
+
             page.screenshot(path=out_path) # делаем скрин _видимой_ части страницы.
             # full_page=True делает скрин ВСЕЙ высоты страницы (если нужно)
             browser.close()

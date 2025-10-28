@@ -18,7 +18,16 @@ http_client:
   user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
   accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
   accept_language: "en-US,en;q=0.5"
-#  checkerbot: "TfpP41B7xvogmbqtDAYc2650J9CWjK"
+  custom_headers:
+    checkerbot: "TfpP41B7xvogmbqtDAYc2650J9CWjK"
+    # NOTE: If the 'custom_headers' section is empty, it MUST contain curly braces:
+    # 'custom_headers: {}'
+    # When adding custom headers, the curly braces {} MUST be removed.
+    # custom_headers entries format:
+    #  X-CF-Bypass: "MySecretToken123"
+    #  Another-Header: "SomeValue"
+    #  User-Referer: "https://example.com/"
+    #  checkerbot: "TfpP41B7xvogmbqtDAYc2650J9CWjK"
 
 proxy:
   type: http            # http | socks5
@@ -31,13 +40,8 @@ screenshots:
   max_workers: 1
   width: 1366
   height: 768
-  timeout_sec: 120
-
-
-
-
-
-
+  timeout_sec: 30
+  wait_after_load_sec: 15
 
 soax:
   host: proxy.soax.com

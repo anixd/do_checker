@@ -54,4 +54,4 @@ COPY . /app
 
 EXPOSE ${APP_PORT:-8088}
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:${APP_PORT:-8088}", "--access-logfile", "/dev/null", "server:app"]
+CMD ["gunicorn", "-w", "6", "--bind", "0.0.0.0:${APP_PORT:-8088}", "--access-logfile", "/dev/null", "server:app"]

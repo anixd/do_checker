@@ -1,6 +1,6 @@
 from __future__ import annotations
 import os, yaml
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, field
 from typing import Any, Dict
 
 @dataclass
@@ -41,6 +41,7 @@ class ShotsCfg:
     width: int
     height: int
     timeout_sec: int
+    wait_after_load_sec: int
 
 
 @dataclass
@@ -60,6 +61,7 @@ class HttpCfg:
     user_agent: str
     accept: str
     accept_language: str
+    custom_headers: Dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -104,7 +106,8 @@ class ConfigStore:
                 "max_workers": 1,
                 "width": 1366,
                 "height": 768,
-                "timeout_sec": 30
+                "timeout_sec": 30,
+                "wait_after_load_sec": 0
             }
 
         # defaults для soax и http_client
@@ -124,7 +127,11 @@ class ConfigStore:
                 "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
                 "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 "accept_language": "en-US,en;q=0.5"
+
             }
+        elif "custom_headers" not in data["http_client"]:
+            # Для обратной совместимости, если http_client есть, а ключа нет
+            data["http_client"]["custom_headers"] = {}
 
         cls._cfg = RootCfg(
             app=AppCfg(**data["app"]),
@@ -158,6 +165,7 @@ class ConfigStore:
             "STICKY_TTL_SEC": (cfg.proxy, "sticky_ttl_sec", int),
             "MAX_SCREENSHOT_WORKERS": (cfg.screenshots, "max_workers", int),
             "SCREENSHOT_TIMEOUT_SEC": (cfg.screenshots, "timeout_sec", int),
+            "SCREENSHOT_WAIT_AFTER_LOAD_SEC": (cfg.screenshots, "wait_after_load_sec", int),
 
             "SOAX_HOST": (cfg.soax, "host"),
             "SOAX_PORT_DEFAULT_PORT": (cfg.soax, "port_default_port", int),
