@@ -1,6 +1,6 @@
 from flask import Flask
 from config.loader import ConfigStore
-from logging_.engine_logger import get_engine_logger
+from logging_.engine_logger import setup_loggers
 from dotenv import load_dotenv
 import os
 
@@ -16,7 +16,7 @@ def create_app() -> Flask:
         app.secret_key = 'dev-secret-key'
 
     ConfigStore.init()
-    get_engine_logger()
+    setup_loggers(app)
 
     from .routes import bp as routes_bp
     app.register_blueprint(routes_bp)

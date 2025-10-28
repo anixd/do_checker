@@ -1,10 +1,14 @@
 from flask import Blueprint, Response
 from engine.orchestrator import sse_subscribe
+from logging_.engine_logger import get_engine_logger
 
 bp = Blueprint("sse", __name__, url_prefix="/events")
 
 @bp.get("/<run_id>")
 def events(run_id: str):
+    log = get_engine_logger()
+    log.info(f"[{run_id}] Client connected to SSE stream.")
+
     def stream():
         q = sse_subscribe(run_id)
         while True:

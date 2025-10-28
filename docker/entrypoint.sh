@@ -13,6 +13,8 @@ if [ ! -f "$APP_YAML" ]; then
 app:
   host: 127.0.0.1
   port: ${APP_PORT:-8888}
+logging:
+  level: "INFO"
 paths:
   logs_dir: /logs
   data_dir: /data

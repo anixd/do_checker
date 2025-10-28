@@ -10,6 +10,11 @@ class AppCfg:
 
 
 @dataclass
+class LoggingCfg:
+    level: str
+
+
+@dataclass
 class PathsCfg:
     logs_dir: str
     data_dir: str
@@ -60,6 +65,7 @@ class HttpCfg:
 @dataclass
 class RootCfg:
     app: AppCfg
+    logging: LoggingCfg
     paths: PathsCfg
     execution: ExecCfg
     proxy: ProxyCfg
@@ -86,6 +92,10 @@ class ConfigStore:
             print(f"FATAL: Config file not found at {app_yaml}")
             print(f"       (Make sure ./data/config/app.yaml exists locally)")
             raise
+
+        # defaults для logger
+        if "logging" not in data:
+            data["logging"] = {"level": "INFO"}
 
         # defaults для screenshots
         if "screenshots" not in data:
@@ -118,6 +128,7 @@ class ConfigStore:
 
         cls._cfg = RootCfg(
             app=AppCfg(**data["app"]),
+            logging=LoggingCfg(**data["logging"]),
             paths=PathsCfg(**data["paths"]),
             execution=ExecCfg(**data["execution"]),
             proxy=ProxyCfg(**data["proxy"]),
@@ -136,6 +147,7 @@ class ConfigStore:
         env_map = {
             "APP_HOST": (cfg.app, "host"),
             "APP_PORT": (cfg.app, "port", int),
+            "LOG_LEVEL": (cfg.logging, "level"),
             "LOG_DIR": (cfg.paths, "logs_dir"),
             "DATA_DIR": (cfg.paths, "data_dir"),
             "MAX_CONCURRENCY": (cfg.execution, "max_concurrency", int),

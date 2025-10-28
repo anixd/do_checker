@@ -48,6 +48,7 @@ def launch_run():
     urls_raw = (request.form.get("urls") or "").strip()
     urls = [u.strip() for u in urls_raw.splitlines() if u.strip()]
     if not urls:
+        log.warning("Run rejected: No URLs provided.")
         return Response("No URLs provided", status=400)
 
     # Собираем все параметры запуска в один словарь
@@ -80,9 +81,17 @@ def launch_run():
     }
 
     if not run_params["country"]:
+        log.warning("Run rejected: Country is required.")
         return Response("Country is required", status=400)
 
+    log.info(
+        f"Accepted /run request. URLs: {len(urls)}. "
+        f"Country: {run_params.get('country')}. Starting run..."
+    )
+
     run_id = start_run(run_params)
+    log.info(f"[{run_id}] Returning HTTP 202 to client.")
+
     return jsonify({"run_id": run_id}), 202 # 202 Accepted
 
 

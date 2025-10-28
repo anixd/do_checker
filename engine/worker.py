@@ -80,16 +80,13 @@ def _measure_http(url: str, proxies: dict, timeout_sec: int, max_redirects: int 
         timings["ttfb_ms"] = int(ttfb * 1000)
         content = first_chunk + resp.content
         bytes_count = len(content)
+
+        # берем историю редиректов из 'resp.history'.
+        # каждый 'r' в 'history' - это Response-объект редиректа.
         redirects = []
         for r in resp.history:
             redirects.append((r.status_code, r.url, r.headers.get('Location', '')))
-        if resp.url != url and not resp.history:
-            redirects.append((http_status, url, resp.url))
-        elif resp.history:
-            redirects.append((resp.status_code, resp.request.url, resp.url))
-            if len(redirects) > 1 and redirects[-1][1] == redirects[-2][2]:
-                redirects.pop(-2)
-                redirects[-1] = (redirects[-1][0], redirects[-2][1], redirects[-1][2])
+
     except requests.exceptions.RequestException as e:
         end = time.time()
         timings["total_ms"] = int((end - start) * 1000)
@@ -144,7 +141,8 @@ def _take_screenshot(
             # Use screenshot timeout (convert to ms)
             page.set_default_navigation_timeout(screenshot_timeout_sec * 1000)
             page.goto(url, wait_until="load")
-            page.screenshot(path=out_path) # full_page=True делает скрин ВСЕЙ высоты страницы (если нужно)
+            page.screenshot(path=out_path) # делаем скрин _видимой_ части страницы.
+            # full_page=True делает скрин ВСЕЙ высоты страницы (если нужно)
             browser.close()
         return True, None
     except Exception as e:
@@ -168,7 +166,10 @@ def execute_check(run_params: dict[str, Any]) -> dict:
     logs_dir = cfg.paths.logs_dir
     day_dir = ensure_day_dir(logs_dir)
 
+    run_id_for_log = run_params.get('run_id', 'NO_RUN_ID')
     url = run_params["url"]
+    log.debug(f"[{run_id_for_log}] execute_check started for {url}")
+    
     timeout_sec = run_params["timeout_sec"]
     make_screenshot = run_params["make_screenshot"]
     debug_mode = run_params.get("debug_mode", False)
@@ -191,9 +192,12 @@ def execute_check(run_params: dict[str, Any]) -> dict:
     exc = None
 
     try:
+        log.debug(f"[{run_id_for_log}] Calling get_session for {url}...")
         ps = get_session(run_params)
         debug_data = ps.debug_info
+
         proxies = _requests_proxies(ps, dns_mode)
+        log.debug(f"[{run_id_for_log}] Calling _measure_http for {url}...")
         http_status, bytes_count, redirects, timings = _measure_http(url_full, proxies, timeout_sec)
     except Exception as e:
         exc = e
@@ -201,7 +205,10 @@ def execute_check(run_params: dict[str, Any]) -> dict:
         if debug_data is None:
             debug_data = {"error": str(e)}
 
+        log.warning(f"[{run_id_for_log}] _measure_http failed for {url}: {e}")
+
     result = _classify(exc, http_status, timeout_sec)
+    log.debug(f"[{run_id_for_log}] Result for {url}: {result}")
 
     # логика скриншота, с семафором
     if make_screenshot and result == "success":
@@ -210,12 +217,12 @@ def execute_check(run_params: dict[str, Any]) -> dict:
 
         log.info(f"Acquiring screenshot semaphore for {url}...")
         with screenshot_semaphore:
-            log.info(f"Semaphore acquired for {url}. Taking screenshot...")
+            log.info(f"[{run_id_for_log}] Semaphore acquired for {url}. Taking screenshot...")
             ok, s_err = _take_screenshot(
                 ps, url_full, png_path, screenshot_timeout,
                 cfg.screenshots.width, cfg.screenshots.height
             )
-            log.info(f"Semaphore released for {url}.")
+            log.info(f"[{run_id_for_log}] Semaphore released for {url}.")
 
         if not ok:
             png_path = None  # don't link to failed screenshot !!!
@@ -243,6 +250,8 @@ def execute_check(run_params: dict[str, Any]) -> dict:
         notes=notes,
         debug_info=debug_data if debug_mode else None
     )
+
+    log.debug(f"[{run_id_for_log}] Writing .md log for {url} to {md_path}")
     with open(md_path, "w", encoding="utf-8") as f:
         f.write(md_text)
 
