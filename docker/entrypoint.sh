@@ -13,6 +13,8 @@ if [ ! -f "$APP_YAML" ]; then
 app:
   host: 127.0.0.1
   port: ${APP_PORT:-8888}
+logging:
+  level: "INFO"
 paths:
   logs_dir: /logs
   data_dir: /data
@@ -30,6 +32,7 @@ screenshots:
   width: 1366
   height: 768
   timeout_sec: 30
+  wait_after_load_sec: 0
 soax:
   host: proxy.soax.com
   port_default_port: 9000
@@ -43,6 +46,7 @@ http_client:
   user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
   accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
   accept_language: "en-US,en;q=0.5"
+  custom_headers: {}
 YAML
 fi
 

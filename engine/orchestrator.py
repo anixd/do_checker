@@ -5,7 +5,6 @@ from datetime import datetime
 from typing import Dict, Any
 from config.loader import ConfigStore
 from logging_.engine_logger import get_engine_logger
-# from logging_.summary_writer import write_run_summary
 from .worker import execute_check
 
 _engine_logger = get_engine_logger()
@@ -17,6 +16,12 @@ _lock = threading.Lock()
 
 def _sse_emit(run_id: str, payload: dict):
     msg = json.dumps(payload, ensure_ascii=False)
+
+    _engine_logger.debug(
+        f"[{run_id}] Emitting SSE event type: {payload.get('type')}, "
+        f"URL: {payload.get('url', 'N/A')}"
+    )
+
     with _lock:
         q = _sse_queues.get(run_id)
     if q:
@@ -50,6 +55,9 @@ def _run_checks_async(run_params: dict[str, Any], run_id: str):
     Эта функция выполняется в отдельном потоке (Thread)
     и делает всю тяжелую работу.
     """
+
+    _engine_logger.info(f"[{run_id}] Background thread started.")
+
     cfg = ConfigStore.get()
     urls = run_params.get("urls", [])
 
@@ -63,6 +71,9 @@ def _run_checks_async(run_params: dict[str, Any], run_id: str):
     task_params["sticky"] = sticky
 
     def worker_task(u: str):
+        # log: задача взята в пул.
+        _engine_logger.info(f"[{run_id}] Task started for URL: {u}")
+
         # Передаем копию словаря + URL в воркер
         task_specific_params = task_params.copy()
         task_specific_params["url"] = u
@@ -76,7 +87,10 @@ def _run_checks_async(run_params: dict[str, Any], run_id: str):
         })
 
         try:
+            # log: Перед блокирующим вызовом
+            _engine_logger.debug(f"[{run_id}] Calling execute_check for {u}...")
             res = execute_check(task_specific_params)
+            _engine_logger.debug(f"[{run_id}] execute_check finished for {u}.")
         except Exception as e:
             _engine_logger.error(f"[{run_id}] Unhandled exception in execute_check for {u}: {e}", exc_info=True)
             res = {  # Создаем 'error' результат
@@ -114,6 +128,8 @@ def _run_checks_async(run_params: dict[str, Any], run_id: str):
 
     # пул потоков для проверок
     with ThreadPoolExecutor(max_workers=cfg.execution.max_concurrency) as pool:
+        _engine_logger.debug(
+            f"[{run_id}] Submitting {len(urls)} tasks to ThreadPoolExecutor (max_workers={cfg.execution.max_concurrency}).")
         futs = [pool.submit(worker_task, u) for u in urls]
         for fut in as_completed(futs):
             try:
@@ -126,6 +142,7 @@ def _run_checks_async(run_params: dict[str, Any], run_id: str):
                 _engine_logger.error(f"[{run_id}] Future failed: {e}", exc_info=True)
 
     # завершение запуска
+    _engine_logger.info(f"[{run_id}] All tasks finished.")
     st = _runs_state[run_id]
 
     # try:
@@ -142,6 +159,8 @@ def _run_checks_async(run_params: dict[str, Any], run_id: str):
                                   "time_ms": int((time.time() - st["started_at"]) * 1000)},
                        "summary": summary_name})
 
+    _engine_logger.info(f"[{run_id}] 'run_finished' emitted. Unsubscribing SSE.")
+
     # отписываемся от SSE, чтобы позволить Response() завершиться
     sse_unsubscribe(run_id)
 
@@ -153,6 +172,8 @@ def start_run(run_params: dict[str, Any]) -> str:
     """
     run_id = uuid.uuid4().hex[:12]
     total = len(run_params.get("urls", []))
+
+    _engine_logger.info(f"[{run_id}] Creating run state (Total: {total} URLs).")
 
     state = {
         "run_id": run_id,
@@ -174,6 +195,7 @@ def start_run(run_params: dict[str, Any]) -> str:
                        "settings": settings_for_sse})
 
     # запук в фоновом потоке
+    _engine_logger.info(f"[{run_id}] Spawning background thread...")
     thread = threading.Thread(
         target=_run_checks_async,
         args=(run_params, run_id),

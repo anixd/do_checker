@@ -27,7 +27,8 @@ FROM python:3.12-slim AS final
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \
-    PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
+    PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright \
+    TZ="UTC"
     # говорим Playwright, где искать браузеры (важно!)
 
 # ставим ТОЛЬКО те зависимости, что нужны для ЗАПУСКА chromium
@@ -53,4 +54,4 @@ COPY . /app
 
 EXPOSE ${APP_PORT:-8088}
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["gunicorn", "--bind", "0.0.0.0:${APP_PORT:-8088}", "--threads", "8", "server:app"]
+CMD ["gunicorn", "-w", "6", "--bind", "0.0.0.0:${APP_PORT:-8088}", "--access-logfile", "/dev/null", "server:app"]
