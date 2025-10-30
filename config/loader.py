@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os, yaml
 from dataclasses import dataclass, fields, field
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 @dataclass
 class AppCfg:
@@ -65,6 +65,11 @@ class HttpCfg:
 
 
 @dataclass
+class DnsCheckerCfg:
+    provider_keywords: Dict[str, List[str]] = field(default_factory=dict)
+
+
+@dataclass
 class RootCfg:
     app: AppCfg
     logging: LoggingCfg
@@ -74,6 +79,7 @@ class RootCfg:
     screenshots: ShotsCfg
     soax: SoaxCfg
     http_client: HttpCfg
+    dns_checker: DnsCheckerCfg
 
 
 class ConfigStore:
@@ -133,6 +139,14 @@ class ConfigStore:
             # Для обратной совместимости, если http_client есть, а ключа нет
             data["http_client"]["custom_headers"] = {}
 
+            # default для dns_checker
+            if "dns_checker" not in data:
+                data["dns_checker"] = {
+                    "provider_keywords": {}
+                }
+            elif "provider_keywords" not in data["dns_checker"]:
+                data["dns_checker"]["provider_keywords"] = {}
+
         cls._cfg = RootCfg(
             app=AppCfg(**data["app"]),
             logging=LoggingCfg(**data["logging"]),
@@ -141,7 +155,8 @@ class ConfigStore:
             proxy=ProxyCfg(**data["proxy"]),
             screenshots=ShotsCfg(**data["screenshots"]),
             soax=SoaxCfg(**data["soax"]),
-            http_client=HttpCfg(**data["http_client"])
+            http_client=HttpCfg(**data["http_client"]),
+            dns_checker=DnsCheckerCfg(**data["dns_checker"])
         )
 
         cls._override_from_env(cls._cfg)

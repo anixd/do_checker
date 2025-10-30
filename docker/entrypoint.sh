@@ -47,6 +47,8 @@ http_client:
   accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
   accept_language: "en-US,en;q=0.5"
   custom_headers: {}
+dns_checker:
+  provider_keywords: {}
 YAML
 fi
 

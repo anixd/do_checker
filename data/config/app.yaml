@@ -53,3 +53,11 @@ soax:
   api_key: null
   package_key: null
 
+dns_checker:
+  # key: Каноничное имя (показывается в UI)
+  # value: Список ключевых слов для поиска в Whois/RDAP
+  provider_keywords:
+    "Cloudflare": ["Cloudflare", "CLOUDFLARE", "CFN"]
+    "Google Cloud": ["Google LLC", "GOOGLE", "GCP"]
+    "Amazon AWS": ["Amazon", "AWS", "AMAZON-02", "Amazon Technologies Inc."]
+    "CloudKleyer": ["CloudKleyer", "DE-CLOUDKLEYER"]

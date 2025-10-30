@@ -248,57 +248,73 @@ document.addEventListener("DOMContentLoaded", () => {
     const checkDnsUrl = document.body.dataset.checkDnsUrl || '/check-dns'; // URL для POST запроса
 
     const renderDnsCard = (payload) => {
-        const card = document.createElement("div");
-        card.className = "dns-result-card";
-        const cardId = `dns-result-${payload.run_id}-${payload.domain.replace(/[^a-zA-Z0-9]/g, "")}`;
-        card.id = cardId;
-
-        let icon = "🔄";
-        let statusClass = "";
         let details = '...';
         let ownerInfo = '...';
+        let detailsButtonHtml = '';
 
         if (payload.type === 'dns_check_finished') {
             if (payload.error) {
                 icon = "❌";
-                statusClass = "status-error";
                 details = `<span class="text-danger">${payload.error}</span>`;
                 ownerInfo = '-';
             } else {
                 icon = "✅";
-                statusClass = "status-success";
+
+                // geolocation
                 const ipsText = payload.ips && payload.ips.length > 0
                                 ? payload.ips.join(', ')
                                 : '(No IPs found)';
-                details = `<div class="ips-list">IPs: ${ipsText}</div>`;
+                let geoText = '';
 
-                let ownerText = payload.owner || 'Unknown'; // Используем 'Unknown' если null/пусто
-                ownerInfo = ownerText; // По умолчанию показываем только owner
+                // Формируем текст геолокации
+                let geoLabel = '<span class="muted">Geo:</span>';
+                let geoInfo = '';
+                if (payload.city && payload.country_name) {
+                    geoInfo = `${payload.city}, ${payload.country_name}`;
+                } else if (payload.country_name) {
+                    geoInfo = payload.country_name;
+                } else if (payload.ips.length > 0) {
+                    // Если есть IP, но нет geo -- "Not found"
+                    geoInfo = '<span class"muted">Not found</span>';
+                }
 
-                // Если owner 'Unknown' и есть доп. детали, показываем их
-                if (ownerText === 'Unknown' && payload.whois_details) {
-                    ownerInfo = `
-                        ${ownerText}
-                        <div class="muted" style="font-size: 12px; margin-top: 2px;">
-                          (${payload.whois_details})
-                        </div>`;
-                } else if (ownerText === 'Whois Error') {
-                     ownerInfo = `<span class="text-danger">${ownerText}</span>`;
+                if (geoInfo) {
+                     geoText = `<div class="ips-list" style="color: #005a9c;">${geoLabel} ${geoInfo}</div>`;
+                }
+
+                details = `<div class="ips-list">IPs: ${ipsText}</div>${geoText}`;
+
+                let ownerText = payload.owner || 'Unknown';
+                if (ownerText === 'Whois Error' || ownerText === 'Whois Parse Error') {
+                    ownerInfo = `<span class="text-danger">${ownerText}</span>`;
+                } else {
+                    ownerInfo = ownerText;
                 }
             }
+
+            // whois_log_path
+            if (payload.whois_log_path) {
+                // Ссылка на статический файл, который отдает /logs/
+                const fileUrl = `/logs/${payload.whois_log_path}`;
+                detailsButtonHtml = `<a href="${fileUrl}" target="_blank" rel="noopener noreferrer" class="btn-details">Details</a>`;
+            } else if (payload.type === 'dns_check_finished') {
+                detailsButtonHtml = `<span class="muted">(no data)</span>`;
+            }
+
         } else {
-             // Стиль для 'Running...'
              details = '';
              ownerInfo = '';
+             detailsButtonHtml = '';
         }
 
         card.innerHTML = `
             <div class="status-icon">${icon}</div>
-            <div>
-                <strong>${payload.domain}</strong>
+            <div> 
+                <strong>${payload.domain}</strong> 
                 ${details}
             </div>
             <div class="owner-info">${ownerInfo}</div>
+            <div class="details-link">${detailsButtonHtml}</div>
             `;
         return card;
      };

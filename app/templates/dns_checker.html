@@ -13,7 +13,7 @@
       padding: 12px 16px;
       margin-bottom: 12px;
       display: grid;
-      grid-template-columns: 40px 1fr 1fr; /* Icon, Domain+IPs, Owner */
+      grid-template-columns: 40px 1.5fr 1fr 100px;
       gap: 16px;
       align-items: center;
     }
@@ -23,7 +23,7 @@
     .dns-result-card .ips-list { font-size: 13px; color: #555; margin-top: 4px; }
     .dns-result-card .owner-info { font-size: 14px; color: #333; }
     .dns-result-header {
-      grid-column: 1 / -1; /* Растягиваем на всю ширину */
+      grid-column: 1 / -1;
       padding-bottom: 8px;
       border-bottom: 1px solid #eee;
       font-size: 14px;
@@ -31,6 +31,23 @@
     }
     .status-success { color: #0a7d00; }
     .status-error { color: #b00020; }
+    .btn-details {
+      display: inline-block;
+      padding: 6px 12px;
+      border: 2px solid #a00;
+      border-radius: 6px;
+      color: #a00;
+      font-weight: 500;
+      text-decoration: none;
+      text-align: center;
+      font-size: 14px;
+      background-color: #fff;
+    }
+    .btn-details:hover {
+      background-color: #f7f7f7;
+      border-color: #d00;
+      color: #d00;
+    }
   </style>
 </head>
 <body
