@@ -28,7 +28,7 @@ def _parse_owner_from_whois_data(data: dict, provider_map: dict) -> str:
     search_text_parts.append(str(net.get('remarks', '')).lower())
     search_text_parts.append(str(data.get('asn_description', '')).lower())  # Описание AS
 
-    # Инфа о сущностях (entities) - владелец, тех. контакт и т.д.
+    # Инфа об entities - владелец, тех. контакт и т.д.
     entities = data.get('entities', [])
     for entity in entities:
         if isinstance(entity, dict):
@@ -58,7 +58,7 @@ def _parse_owner_from_whois_data(data: dict, provider_map: dict) -> str:
         for keyword in keywords:
             if keyword.lower() in full_text:
                 log.debug(f"Found keyword '{keyword}', identified as '{provider_name}'")
-                return provider_name  # Возвращаем каноничное имя
+                return provider_name  # Возвращаем канонічное имя
 
     log.debug("No provider keywords matched.")
     return "Unknown"
@@ -84,12 +84,12 @@ def check_domain_dns_whois(domain: str) -> dict:
         provider_map = {}
 
     try:
-        # 2. DNS Lookup
+        # DNS Lookup (first step)
         hostname, aliases, ipaddrlist = socket.gethostbyname_ex(domain)
         ips.extend(ipaddrlist)
         log.debug(f"DNS lookup for {domain} successful: IPs {ips}")
 
-        # 3. Geolocation & RDAP/Whois Lookup (ЗАПУСКАЕТСЯ ТОЛЬКО ЕСЛИ DNS УСПЕШЕН)
+        # geolocation & RDAP/Whois Lookup (только если DNS Lookup успешен)
         if ips:
             first_ip = ips[0]
             geo_data = _get_geolocation(first_ip)

@@ -248,9 +248,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const checkDnsUrl = document.body.dataset.checkDnsUrl || '/check-dns'; // URL для POST запроса
 
     const renderDnsCard = (payload) => {
+        let icon = "🔄";
         let details = '...';
         let ownerInfo = '...';
         let detailsButtonHtml = '';
+
+        // Находим <div class="dns-result-card"> (если он уже создан)
+        // или создаем новый, если это 'dns_check_started'
+        const cardId = `dns-result-${payload.run_id}-${payload.domain.replace(/[^a-zA-Z0-9]/g, "")}`;
+        let card = document.getElementById(cardId);
+        if (!card) {
+             card = document.createElement("div");
+             card.className = "dns-result-card";
+             card.id = cardId;
+        }
 
         if (payload.type === 'dns_check_finished') {
             if (payload.error) {
@@ -273,9 +284,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     geoInfo = `${payload.city}, ${payload.country_name}`;
                 } else if (payload.country_name) {
                     geoInfo = payload.country_name;
-                } else if (payload.ips.length > 0) {
+                } else if (payload.ips && payload.ips.length > 0) {
                     // Если есть IP, но нет geo -- "Not found"
-                    geoInfo = '<span class"muted">Not found</span>';
+                    geoInfo = '<span class="muted">Not found</span>';
                 }
 
                 if (geoInfo) {
@@ -301,10 +312,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 detailsButtonHtml = `<span class="muted">(no data)</span>`;
             }
 
-        } else {
-             details = '';
-             ownerInfo = '';
-             detailsButtonHtml = '';
+        } else if (payload.type === 'dns_check_started') {
+             // Для 'started' оставляем плейсхолдеры
+             details = '<span class="muted">Resolving DNS...</span>';
+             ownerInfo = '<span class="muted">...</span>';
+             detailsButtonHtml = '<span class="muted">...</span>';
         }
 
         card.innerHTML = `
