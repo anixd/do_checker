@@ -26,7 +26,6 @@ def _catalog_path() -> str:
 
 
 # хелперы для нормализации входящих данных
-
 def _normalize_regions(api_regions: List[str]) -> List[Dict[str, str]]:
     if not api_regions:
         return []
@@ -193,17 +192,17 @@ class CatalogStore:
 
             log.info(f"Fetching geo data for country: {code}...")
 
-            # 1. Получаем Регионы
+            # Получаем регионы
             api_regions = api.get_regions(code, conn_type)
             if api_regions is not None:
                 country["regions"] = _normalize_regions(api_regions)
 
-            # 2. Получаем Города
+            # Получаем города
             api_cities = api.get_cities(code, conn_type=conn_type)
             if api_cities is not None:
                 country["cities"] = _normalize_cities(api_cities)
 
-            # 3. Получаем ISP
+            # Получаем ISPs
             api_isps = api.get_isps(code)
             if api_isps is not None:
                 country["isps"] = _normalize_isps(api_isps)

@@ -13,12 +13,11 @@ def events(run_id: str):
     def stream():
         q = sse_subscribe(run_id)
         while True:
-            msg = q.get()  # блокирующе ждем сообщение или None
+            msg = q.get()
 
-            # проверяем на None
             if msg is None:
                 log.debug(f"[{run_id}] Received None sentinel, closing SSE stream.")
-                break  # Выходим из цикла, если пришел None
+                break
 
             yield f"data: {msg}\n\n"
 

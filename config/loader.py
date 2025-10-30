@@ -136,7 +136,7 @@ class ConfigStore:
 
             }
         elif "custom_headers" not in data["http_client"]:
-            # Для обратной совместимости, если http_client есть, а ключа нет
+            # Заглушка для обратной совместимости, если http_client есть, а ключа нет
             data["http_client"]["custom_headers"] = {}
 
             # default для dns_checker

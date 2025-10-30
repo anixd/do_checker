@@ -51,7 +51,6 @@ def launch_run():
         log.warning("Run rejected: No URLs provided.")
         return Response("No URLs provided", status=400)
 
-    # Собираем все параметры запуска в один словарь
     run_params = {
         "urls": urls,
 
@@ -130,30 +129,25 @@ def catalog_update_list():
         new_countries_str = request.form.get("new_countries", "")
         existing_countries_keep = request.form.getlist("countries_to_keep")
 
-        # 1. Process new countries (lowercase, split by any whitespace, remove blanks)
         new_countries_list = [
             code.strip().lower()
             for code in new_countries_str.split()
             if code.strip()
         ]
 
-        # 2. Merge lists, preserving order and removing duplicates
         final_codes_list = []
         seen_codes = set()
 
-        # Add "kept" countries first
         for code in existing_countries_keep:
             if code not in seen_codes:
                 final_codes_list.append(code)
                 seen_codes.add(code)
 
-        # Add "new" countries if they weren't already in the "kept" list
         for code in new_countries_list:
             if code not in seen_codes:
                 final_codes_list.append(code)
                 seen_codes.add(code)
 
-        # 3. Save to CatalogStore
         CatalogStore.update_country_list(final_codes_list)
 
         flash("Catalog country list updated successfully.", "info")  # 'info' for blue flash
@@ -192,8 +186,6 @@ def api_get_cities():
     region = request.args.get("region")
     if not country:
         return jsonify([])
-    # TBD: Наша структура JSON пока не поддерживает города ВНУТРИ региона.
-    # Мы вернем города на уровне страны, если они есть.
     return jsonify(CatalogStore.get_cities(country, region))
 
 
@@ -213,7 +205,7 @@ def clear_logs():
 
     log.warning(f"Attempting to clear contents of log directory: {logs_dir}")
 
-    # Проверка, что /logs существует и это действительно директория
+    # Проверка, что /logs существует и это действительно dir
     if not os.path.isdir(logs_dir):
         log.error(f"Log directory not found or is not a directory: {logs_dir}")
         flash("Error: Log directory not found.", "error")
@@ -225,7 +217,7 @@ def clear_logs():
         return jsonify({"success": False, "message": "Unsafe log directory path"}), 500
 
     try:
-        # Удаляем все внутри /logs
+        # грохаем всё внутри /logs
         for filename in os.listdir(logs_dir):
             file_path = os.path.join(logs_dir, filename)
             try:

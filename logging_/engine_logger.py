@@ -54,7 +54,6 @@ def setup_loggers(app: Flask):
     access_logger.setLevel(logging.INFO)  # access.log приложения всегда уровня INFO
 
     access_handler = FileHandler(os.path.join(log_dir, "access.log"))
-    # Форматтер здесь простой, т.к. мы сами формируем сообщение
     access_fmt = Formatter('%(message)s')
     access_handler.setFormatter(access_fmt)
     access_logger.addHandler(access_handler)
@@ -63,7 +62,7 @@ def setup_loggers(app: Flask):
     # регистрируем хук Flask для логирования доступа
     @app.after_request
     def log_access(response: Response):
-        # не логируем SSE (слишком дофуя шумно) и статику
+        # не логируем SSE (слишком дофуя шумно и нафиг не нужно) и статику
         if request.path.startswith('/events/') or request.path.startswith('/static/'):
             return response
 

@@ -19,25 +19,20 @@ def _parse_owner_from_whois_data(data: dict, provider_map: dict) -> str:
     if not data or not provider_map:
         return "Unknown"
 
-    # 1. Собираем haystack
     search_text_parts = []
 
-    # Информация о сети
     net = data.get('network', {})
     search_text_parts.append(str(net.get('name', '')).lower())
     search_text_parts.append(str(net.get('remarks', '')).lower())
-    search_text_parts.append(str(data.get('asn_description', '')).lower())  # Описание AS
+    search_text_parts.append(str(data.get('asn_description', '')).lower())
 
-    # Инфа об entities - владелец, тех. контакт и т.д.
     entities = data.get('entities', [])
     for entity in entities:
         if isinstance(entity, dict):
-            # Если это словарь, парсим 'contact'
             contact = entity.get('contact', {})
             search_text_parts.append(str(contact.get('name', '')).lower())
             search_text_parts.append(str(contact.get('organization', '')).lower())
 
-            # Иногда полезно глянуть на email
             email = contact.get('email', '')
             if email:
                 try:
@@ -47,18 +42,16 @@ def _parse_owner_from_whois_data(data: dict, provider_map: dict) -> str:
                     pass
 
         elif isinstance(entity, str):
-            # Если это просто строка (например, handle), добавляем ее
             search_text_parts.append(entity.lower())
 
     full_text = " | ".join(search_text_parts)
     log.debug(f"Whois searchable text: {full_text[:500]}...")
 
-    # 2. Ищем по карте провайдеров
     for provider_name, keywords in provider_map.items():
         for keyword in keywords:
             if keyword.lower() in full_text:
                 log.debug(f"Found keyword '{keyword}', identified as '{provider_name}'")
-                return provider_name  # Возвращаем канонічное имя
+                return provider_name
 
     log.debug("No provider keywords matched.")
     return "Unknown"

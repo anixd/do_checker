@@ -45,10 +45,10 @@ class SoaxApiClient:
         try:
             response = self.session.get(f"{BASE_URL}{endpoint}", params=params, timeout=30)
 
-            # 1. проверяем на ошибки 4xx/5xx
+            # проверяем на ошибки 4xx/5xx
             response.raise_for_status()
 
-            # 2. пытаемся парсить json
+            # пытаемся парсить json
             try:
                 data = response.json()
                 return data
@@ -59,7 +59,7 @@ class SoaxApiClient:
                 return None
 
         except requests.exceptions.HTTPError as e:
-            # Ошибка 4xx/5xx
+            # Ошибки 4xx/5xx
             log.error(
                 f"SOAX API HTTP error for {endpoint}. Status: {e.response.status_code}, Response: {e.response.text[:200]}...")
             return None

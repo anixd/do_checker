@@ -145,9 +145,6 @@ def _take_screenshot(
             # Use screenshot timeout (convert to ms)
             page.set_default_navigation_timeout(screenshot_timeout_sec * 1000)
 
-            # screenshot issue
-            # page.goto(url, wait_until="networkidle")
-
             # 1. ждем спиннера
             page.goto(url, wait_until="load")
 
@@ -157,7 +154,6 @@ def _take_screenshot(
                     f"Waiting for {wait_after_load_sec}s (wait_after_load_sec) "
                     f"for SPA content on {url}"
                 )
-                # Playwright ждет миллисекунды
                 page.wait_for_timeout(wait_after_load_sec * 1000)
 
             page.screenshot(path=out_path) # делаем скрин _видимой_ части страницы.

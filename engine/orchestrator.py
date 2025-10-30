@@ -105,8 +105,6 @@ def _run_checks_async(run_params: dict[str, Any], run_id: str):
 
         png_relative_path = None
         if res.get("png_path"):
-            # Получаем относительный путь от базовой директории логов
-            # Например, /app/logs/2025-10-26/img.png -> 2025-10-26/img.png
             try:
                 png_relative_path = os.path.relpath(res["png_path"], cfg.paths.logs_dir)
                 png_relative_path = png_relative_path.replace(os.path.sep, '/')
@@ -209,7 +207,7 @@ def start_run(run_params: dict[str, Any]) -> str:
     thread = threading.Thread(
         target=_run_checks_async,
         args=(run_params, run_id),
-        daemon=True  # Поток умрет, если gunicorn (главный поток) умрет
+        daemon=True  # Поток умрет, если gunicorn (parent поток) умрет
     )
     thread.start()
 
@@ -272,10 +270,8 @@ def _run_dns_checks_async(domains: list[str], run_id: str):
             except Exception as e:
                 _engine_logger.error(f"[{run_id}] DNS Future failed: {e}", exc_info=True)
 
-    # Завершение запуска DNS-проверки
     _engine_logger.info(f"[{run_id}] All DNS tasks finished.")
 
-    # Отправляем финальное событие
     _sse_emit(run_id, {
         "type": "dns_run_finished",
         "run_id": run_id,
