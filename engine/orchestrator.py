@@ -6,6 +6,7 @@ from typing import Dict, Any
 from config.loader import ConfigStore
 from logging_.engine_logger import get_engine_logger
 from .worker import execute_check
+from .dns_checker import check_domain_dns_whois
 
 _engine_logger = get_engine_logger()
 
@@ -161,6 +162,15 @@ def _run_checks_async(run_params: dict[str, Any], run_id: str):
 
     _engine_logger.info(f"[{run_id}] 'run_finished' emitted. Unsubscribing SSE.")
 
+    # сигналим обработчику SSE, что пора закрываться
+    with _lock:
+        q = _sse_queues.get(run_id)
+    if q:
+        try:
+            q.put(None, block=False)  # отправляем None как сигнал
+        except queue.Full:
+            _engine_logger.warning(f"SSE queue full when trying to send None sentinel for run_id {run_id}")
+
     # отписываемся от SSE, чтобы позволить Response() завершиться
     sse_unsubscribe(run_id)
 
@@ -204,3 +214,133 @@ def start_run(run_params: dict[str, Any]) -> str:
     thread.start()
 
     return run_id
+
+
+def dns_worker_task(domain: str, run_id: str):
+    """Worker task for a single DNS/Whois check."""
+    _engine_logger.info(f"[{run_id}] DNS task started for domain: {domain}")
+
+    _sse_emit(run_id, {
+        "type": "dns_check_started",
+        "run_id": run_id,
+        "domain": domain,
+    })
+
+    try:
+        res = check_domain_dns_whois(domain)
+        _engine_logger.debug(f"[{run_id}] check_domain_dns_whois finished for {domain}.")
+
+    except Exception as e:
+        _engine_logger.error(
+            f"[{run_id}] Unhandled exception in dns_worker_task for {domain}: {e}",
+            exc_info=True
+        )
+        res = {  # Создаем 'error' результат
+            'domain': domain,
+            'ips': [],
+            'owner': None,
+            'error': f"Worker failed: {e}"
+        }
+
+    # Отправляем результат через SSE
+    _sse_emit(run_id, {"type": "dns_check_finished", "run_id": run_id, **res})
+    return res
+
+
+def _run_dns_checks_async(domains: list[str], run_id: str):
+    """Runs DNS/Whois checks in background threads."""
+    _engine_logger.info(f"[{run_id}] DNS Background thread started.")
+
+    cfg = ConfigStore.get()  # Используем тот же max_concurrency
+
+    results = []  # Будем собирать результаты для возможного summary в будущем
+
+    # Пул потоков для DNS проверок
+    with ThreadPoolExecutor(max_workers=cfg.execution.max_concurrency) as pool:
+        _engine_logger.debug(
+            f"[{run_id}] Submitting {len(domains)} DNS tasks to ThreadPoolExecutor "
+            f"(max_workers={cfg.execution.max_concurrency})."
+        )
+        # Передаем run_id в каждую задачу
+        futs = [pool.submit(dns_worker_task, d, run_id) for d in domains]
+
+        for fut in as_completed(futs):
+            try:
+                result_row = fut.result()
+                results.append(result_row)
+                # Логируем завершение задачи, если нужно (уже есть в dns_worker_task)
+            except Exception as e:
+                _engine_logger.error(f"[{run_id}] DNS Future failed: {e}", exc_info=True)
+
+    # Завершение запуска DNS-проверки
+    _engine_logger.info(f"[{run_id}] All DNS tasks finished.")
+
+    # Отправляем финальное событие
+    _sse_emit(run_id, {
+        "type": "dns_run_finished",
+        "run_id": run_id,
+        "totals": {
+            "ok": sum(1 for r in results if not r.get('error')),
+            "err": sum(1 for r in results if r.get('error')),
+            "time_ms": int((time.time() - _runs_state[run_id]["started_at"]) * 1000)  # Используем время старта
+        }
+    })
+
+    _engine_logger.info(f"[{run_id}] 'dns_run_finished' emitted. Unsubscribing SSE.")
+
+    # сигналим обработчику SSE, что пора закрываться
+    with _lock:
+        q = _sse_queues.get(run_id)
+    if q:
+        try:
+            q.put(None, block=False)  # отправляем None как сигнал
+        except queue.Full:
+            _engine_logger.warning(f"SSE queue full when trying to send None sentinel for DNS run_id {run_id}")
+
+    # Отписываемся от SSE
+    sse_unsubscribe(run_id)
+
+
+def start_dns_run(domains: list[str]) -> str:
+    """
+    Starts an asynchronous run for DNS/Whois checks.
+    Returns immediately with a run_id.
+    """
+    run_id = uuid.uuid4().hex[:12]
+    total = len(domains)
+
+    _engine_logger.info(f"[{run_id}] Creating DNS run state (Total: {total} domains).")
+
+    # Сохраняем базовое состояние (время старта нужно для финального события)
+    state = {
+        "run_id": run_id,
+        "total": total,
+        "done": 0,  # Пока не используем done для DNS, но структура та же
+        "rows": [],  # Пока не используем rows для DNS, но структура та же
+        "started_at": time.time(),
+    }
+    with _lock:
+        _runs_state[run_id] = state
+
+    # Создаем очередь SSE _до_ запуска потока
+    sse_subscribe(run_id)
+
+    # Отправляем стартовое событие
+    _sse_emit(run_id, {
+        "type": "dns_run_started",
+        "run_id": run_id,
+        "ts": datetime.now().isoformat(timespec="seconds"),
+        "total_domains": total
+    })
+
+    # Запуск в фоновом потоке
+    _engine_logger.info(f"[{run_id}] Spawning DNS background thread...")
+    thread = threading.Thread(
+        target=_run_dns_checks_async,
+        args=(domains, run_id),
+        daemon=True
+    )
+    thread.start()
+
+    return run_id
+

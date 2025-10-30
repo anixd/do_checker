@@ -4,6 +4,7 @@ certifi==2025.10.5
 charset-normalizer==3.4.4
 click==8.3.0
 Flask==3.1.2
+gevent==25.9.1
 greenlet==3.2.4
 gunicorn==23.0.0
 idna==3.11
@@ -15,9 +16,12 @@ playwright==1.55.0
 pydantic==2.12.3
 pydantic_core==2.41.4
 pyee==13.0.0
+python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
+python-whois==0.9.6
 PyYAML==6.0.3
-requests[socks]==2.32.5
+requests==2.32.5
+six==1.17.0
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 urllib3==2.5.0

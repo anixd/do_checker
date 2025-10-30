@@ -188,8 +188,9 @@
 <body>
 
   <nav class="tabs">
-    <a href="{{ url_for('routes.index') }}">Checker</a>
-    <a href="{{ url_for('routes.catalog') }}" class="active">Geo Catalog</a>
+    <a href="{{ url_for('routes.index') }}" target="_blank">Checker</a>
+    <a href="{{ url_for('routes.dns_checker_page') }}" target="_blank">DNS Tools</a>
+    <a href="{{ url_for('routes.catalog') }}" class="active" target="_blank">Geo Catalog</a>
     <a href="{{ url_for('routes.settings') }}" target="_blank" rel="noopener noreferrer">Settings</a>
   </nav>
 
