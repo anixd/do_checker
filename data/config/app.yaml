@@ -26,7 +26,6 @@ http_client:
     #  X-CF-Bypass: "MySecretToken123"
     #  Another-Header: "SomeValue"
     #  User-Referer: "https://example.com/"
-    #  checkerbot: "TfpP41B7xvogmbqtDAYc2650J9CWjK"
 
 proxy:
   type: http            # http | socks5
