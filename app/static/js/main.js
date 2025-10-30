@@ -1,5 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
 
+    // получаем URL для EventSource из data-атрибута
+    const eventsUrlBase = document.body.dataset.eventsUrl || '/events/'; // базовый URL без run_id
+
     // каскадные дропдауны
     const countrySelect = document.getElementById("country");
     const regionSelect = document.getElementById("region");
@@ -101,9 +104,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }, 0); // Нулевая задержка выполнит код после текущего цикла событий
         });
     }
-    
-    // получим URL для EventSource из data-атрибута
-    const eventsUrlBase = document.body.dataset.eventsUrl || '/events/'; // базовый URL без run_id
 
     const renderCard = (payload) => {
         const card = document.createElement("div");
@@ -235,6 +235,185 @@ document.addEventListener("DOMContentLoaded", () => {
                 alert("Network error while trying to clear logs.");
             }
         });
+    }
+
+    // DNS checker
+
+    const dnsForm = document.getElementById("dns-check-form");
+    const dnsRunButton = document.getElementById("run-dns-check-button");
+    const dnsResultsContainer = document.getElementById("dns-results-container");
+    let dnsEventSource = null; // Отдельный EventSource для DNS
+
+    // Получаем URL'ы из data-атрибутов
+    const checkDnsUrl = document.body.dataset.checkDnsUrl || '/check-dns'; // URL для POST запроса
+
+    const renderDnsCard = (payload) => {
+        let icon = "🔄";
+        let details = '...';
+        let ownerInfo = '...';
+        let detailsButtonHtml = '';
+
+        // Находим <div class="dns-result-card"> (если он уже создан)
+        // или создаем новый, если это 'dns_check_started'
+        const cardId = `dns-result-${payload.run_id}-${payload.domain.replace(/[^a-zA-Z0-9]/g, "")}`;
+        let card = document.getElementById(cardId);
+        if (!card) {
+             card = document.createElement("div");
+             card.className = "dns-result-card";
+             card.id = cardId;
+        }
+
+        if (payload.type === 'dns_check_finished') {
+            if (payload.error) {
+                icon = "❌";
+                details = `<span class="text-danger">${payload.error}</span>`;
+                ownerInfo = '-';
+            } else {
+                icon = "✅";
+
+                // geolocation
+                const ipsText = payload.ips && payload.ips.length > 0
+                                ? payload.ips.join(', ')
+                                : '(No IPs found)';
+                let geoText = '';
+
+                // Формируем текст геолокации
+                let geoLabel = '<span class="muted">Geo:</span>';
+                let geoInfo = '';
+                if (payload.city && payload.country_name) {
+                    geoInfo = `${payload.city}, ${payload.country_name}`;
+                } else if (payload.country_name) {
+                    geoInfo = payload.country_name;
+                } else if (payload.ips && payload.ips.length > 0) {
+                    // Если есть IP, но нет geo -- "Not found"
+                    geoInfo = '<span class="muted">Not found</span>';
+                }
+
+                if (geoInfo) {
+                     geoText = `<div class="ips-list" style="color: #005a9c;">${geoLabel} ${geoInfo}</div>`;
+                }
+
+                details = `<div class="ips-list">IPs: ${ipsText}</div>${geoText}`;
+
+                let ownerText = payload.owner || 'Unknown';
+                if (ownerText === 'Whois Error' || ownerText === 'Whois Parse Error') {
+                    ownerInfo = `<span class="text-danger">${ownerText}</span>`;
+                } else {
+                    ownerInfo = ownerText;
+                }
+            }
+
+            // whois_log_path
+            if (payload.whois_log_path) {
+                // Ссылка на статический файл, который отдает /logs/
+                const fileUrl = `/logs/${payload.whois_log_path}`;
+                detailsButtonHtml = `<a href="${fileUrl}" target="_blank" rel="noopener noreferrer" class="btn-details">Details</a>`;
+            } else if (payload.type === 'dns_check_finished') {
+                detailsButtonHtml = `<span class="muted">(no data)</span>`;
+            }
+
+        } else if (payload.type === 'dns_check_started') {
+             // Для 'started' оставляем плейсхолдеры
+             details = '<span class="muted">Resolving DNS...</span>';
+             ownerInfo = '<span class="muted">...</span>';
+             detailsButtonHtml = '<span class="muted">...</span>';
+        }
+
+        card.innerHTML = `
+            <div class="status-icon">${icon}</div>
+            <div> 
+                <strong>${payload.domain}</strong> 
+                ${details}
+            </div>
+            <div class="owner-info">${ownerInfo}</div>
+            <div class="details-link">${detailsButtonHtml}</div>
+            `;
+        return card;
+     };
+
+    const renderDnsHeader = (payload) => {
+        const header = document.createElement("div");
+        header.className = "dns-result-header";
+        const domainCount = payload.total_domains || '?';
+        header.innerHTML = `
+            <strong>DNS Run: <code>${payload.run_id}</code></strong>
+            (${domainCount} Domains)
+            <span id="dns-run-status-${payload.run_id}">(Running...)</span>`;
+        return header;
+     };
+
+    if (dnsForm && dnsRunButton) {
+      dnsForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        dnsRunButton.disabled = true; dnsRunButton.textContent = "Running...";
+        dnsResultsContainer.innerHTML = ""; // Очищаем предыдущие результаты
+        if (dnsEventSource) { dnsEventSource.close(); } // Закрываем старый SSE, если был
+
+        const formData = new FormData(dnsForm);
+        let response;
+        try {
+          // Используем URL из data-атрибута
+          response = await fetch(checkDnsUrl, { method: "POST", body: formData });
+        } catch (err) {
+          console.error("DNS Check Fetch error:", err);
+          dnsResultsContainer.innerHTML = `<div class="dns-result-card status-error">Network error submitting DNS run.</div>`;
+          dnsRunButton.disabled = false; dnsRunButton.textContent = "Run DNS check";
+          return;
+        }
+
+        if (!response.ok) {
+          let errorMsg = 'Unknown error';
+          try {
+              const errData = await response.json();
+              errorMsg = errData.error || errorMsg;
+          } catch(jsonErr) {
+              errorMsg = await response.text();
+          }
+          dnsResultsContainer.innerHTML = `<div class="dns-result-card status-error">Error: ${errorMsg} (${response.status})</div>`;
+          dnsRunButton.disabled = false; dnsRunButton.textContent = "Run DNS check";
+          return;
+        }
+
+        const data = await response.json();
+        const runId = data.run_id;
+
+        // Собираем URL для EventSource
+        const eventSourceUrl = `${eventsUrlBase}${runId}`;
+        dnsEventSource = new EventSource(eventSourceUrl);
+
+        dnsEventSource.onmessage = (event) => {
+            const payload = JSON.parse(event.data);
+
+            // Обрабатываем события *только* для DNS чекера
+            if (payload.type === 'dns_run_started') {
+                dnsResultsContainer.prepend(renderDnsHeader(payload));
+            } else if (payload.type === 'dns_check_started') {
+                dnsResultsContainer.append(renderDnsCard(payload));
+            } else if (payload.type === 'dns_check_finished') {
+                const cardId = `dns-result-${payload.run_id}-${payload.domain.replace(/[^a-zA-Z0-9]/g, "")}`;
+                const existingCard = document.getElementById(cardId);
+                if (existingCard) {
+                    existingCard.replaceWith(renderDnsCard(payload));
+                } else {
+                    dnsResultsContainer.append(renderDnsCard(payload));
+                }
+            } else if (payload.type === 'dns_run_finished') {
+                const statusEl = document.getElementById(`dns-run-status-${payload.run_id}`);
+                if (statusEl) {
+                     statusEl.textContent = ` (Finished in ${payload.totals.time_ms / 1000}s. OK: ${payload.totals.ok}, Err: ${payload.totals.err})`;
+                }
+                dnsRunButton.disabled = false; dnsRunButton.textContent = "Run DNS check";
+                dnsEventSource.close();
+            }
+            // Другие типы событий (от основного чекера) игнорируем
+         };
+
+        dnsEventSource.onerror = (err) => {
+             console.error("DNS EventSource failed:", err);
+             dnsRunButton.disabled = false; dnsRunButton.textContent = "Run DNS check";
+             if (dnsEventSource) dnsEventSource.close();
+         };
+      });
     }
 
   });

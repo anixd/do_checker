@@ -6,7 +6,7 @@ from datetime import datetime
 import threading
 import shutil
 import os
-from engine.orchestrator import start_run, get_run_state
+from engine.orchestrator import start_run, get_run_state, start_dns_run
 from config.loader import ConfigStore
 from providers.soax import CatalogStore, refresh_catalog_data
 from logging_.engine_logger import get_engine_logger
@@ -244,4 +244,32 @@ def clear_logs():
         log.error(f"Failed to clear log directory {logs_dir}: {e}", exc_info=True)
         flash(f"Error clearing logs: {e}", "error")
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+@bp.get("/dns-checker")
+def dns_checker_page():
+    """Renders the DNS checker page."""
+    return render_template("dns_checker.html")
+
+
+@bp.post("/check-dns")
+def launch_dns_run():
+    """Handles the form submission from the DNS checker page."""
+    domains_raw = (request.form.get("domains") or "").strip()
+    domains = [d.strip() for d in domains_raw.splitlines() if d.strip()]
+
+    if not domains:
+        log.warning("DNS check rejected: No domains provided.")
+        # Можно вернуть ошибку JSON, если JS будет ее обрабатывать
+        return jsonify({"error": "No domains provided"}), 400
+
+    log.info(
+        f"Accepted /check-dns request. Domains: {len(domains)}. Starting DNS run..."
+    )
+
+    run_id = start_dns_run(domains)
+
+    log.info(f"[{run_id}] Returning HTTP 202 for DNS run.")
+
+    return jsonify({"run_id": run_id}), 202  # Accepted
 

@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget gnupg ca-certificates fonts-liberation libnss3 libxkbcommon0 \
     libxcomposite1 libxrandr2 libasound2 libxdamage1 libxfixes3 \
-    libgtk-3-0 libdrm2 libgbm1 libpango-1.0-0 libwoff1 xvfb git \
+    libgtk-3-0 libdrm2 libgbm1 libpango-1.0-0 libwoff1 xvfb git whois \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -36,7 +36,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates fonts-liberation libnss3 libxkbcommon0 \
     libxcomposite1 libxrandr2 libasound2 libxdamage1 libxfixes3 \
-    libgtk-3-0 libdrm2 libgbm1 libpango-1.0-0 libwoff1 \
+    libgtk-3-0 libdrm2 libgbm1 libpango-1.0-0 libwoff1 whois \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /opt/venv /opt/venv
@@ -54,4 +54,4 @@ COPY . /app
 
 EXPOSE ${APP_PORT:-8088}
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["gunicorn", "-w", "6", "--bind", "0.0.0.0:${APP_PORT:-8088}", "--access-logfile", "/dev/null", "server:app"]
+CMD ["gunicorn", "-w", "4", "--bind", "0.0.0.0:${APP_PORT:-8088}", "--access-logfile", "/dev/null", "server:app"]

@@ -18,4 +18,4 @@ services:
       - ./logs:/logs
       - .:/app
 
-    command: gunicorn -w 6 --bind 0.0.0.0:${APP_PORT:-8888} --reload --access-logfile /dev/null server:app
+    command: gunicorn -k gevent -w 4 --bind 0.0.0.0:${APP_PORT:-8888} --reload --access-logfile /dev/null server:app

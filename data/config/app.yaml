@@ -1,10 +1,10 @@
 app:
   host: 127.0.0.1
-  port: 9988
+  port: 8888
 
 # Log levels: DEBUG, INFO, WARNING, ERROR
 logging:
-  level: "DEBUG"
+  level: "INFO"
 
 paths:
   logs_dir: /logs
@@ -18,8 +18,7 @@ http_client:
   user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
   accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
   accept_language: "en-US,en;q=0.5"
-  custom_headers:
-    checkerbot: "TfpP41B7xvogmbqtDAYc2650J9CWjK"
+  custom_headers: {}
     # NOTE: If the 'custom_headers' section is empty, it MUST contain curly braces:
     # 'custom_headers: {}'
     # When adding custom headers, the curly braces {} MUST be removed.
@@ -53,3 +52,11 @@ soax:
   api_key: null
   package_key: null
 
+dns_checker:
+  # key: Каноничное имя (показывается в UI)
+  # value: Список ключевых слов для поиска в Whois/RDAP
+  provider_keywords:
+    "Cloudflare": ["Cloudflare", "CLOUDFLARE", "CFN"]
+    "Google Cloud": ["Google LLC", "GOOGLE", "GCP"]
+    "Amazon AWS": ["Amazon", "AWS", "AMAZON-02", "Amazon Technologies Inc."]
+    "CloudKleyer": ["CloudKleyer", "DE-CLOUDKLEYER"]
