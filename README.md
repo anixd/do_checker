@@ -22,6 +22,7 @@ A web application to check the availability of websites ("mirrors") through the 
         cp .env.example .env
         ```
     * **Edit the `.env` file:**
+        * **`TZ`:** set your local timezone (if not set, UTC will be the default).
         * **`SOAX_PORT_LOGIN`:** Replace `YOUR_TOKEN_HERE` with your **short token (login)** from the SOAX dashboard, used for Port mode. **This is required.**
         * **(Optional) `SOAX_API_KEY` and `SOAX_PACKAGE_KEY`:** If you plan to use the Geo catalog update feature ("Refresh from SOAX"), fill these in from your SOAX dashboard. Remember that `SOAX_PACKAGE_KEY` should contain the same **short token (login)** as `SOAX_PORT_LOGIN`.
         * **(Optional) `APP_HOST` and `APP_PORT`:** You can change the host and port where the application will be accessible. Defaults to `127.0.0.1:8888`.
