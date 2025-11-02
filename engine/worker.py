@@ -182,16 +182,29 @@ def execute_check(run_params: dict[str, Any]) -> dict:
     day_dir = ensure_day_dir(logs_dir)
 
     run_id_for_log = run_params.get('run_id', 'NO_RUN_ID')
-    url = run_params["url"]
+    url = run_params["url"].strip()
     log.debug(f"[{run_id_for_log}] execute_check started for {url}")
-    
+
+    # Split by whitespace — expecting something like "example.com/path?x=1 us"
+    parts = url.split()
+
+    if len(parts) > 1:
+        # Assume last part is the country code
+        country_code = parts[-1].lower()
+
+        # Optionally validate it's a two-letter code
+        if len(country_code) == 2 and country_code.isalpha():
+            run_params["country"] = country_code
+            url = " ".join(parts[:-1])  # remove the country code part
+            run_params["url"] = url
+
     timeout_sec = run_params["timeout_sec"]
     make_screenshot = run_params["make_screenshot"]
     debug_mode = run_params.get("debug_mode", False)
     dns_mode = run_params.get("dns_mode", "proxy")
 
     domain, url_full = _normalize_url(url)
-    ts = datetime.now().strftime("%H-%M-%S")
+    ts = datetime.now().strftime("%H-%M-%S-%f")
     base_name = f"{ts}_{domain}"
 
     md_path = unique_file_path(day_dir, base_name, "md")
