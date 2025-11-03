@@ -3,6 +3,7 @@ from config.loader import ConfigStore
 from logging_.engine_logger import setup_loggers
 from dotenv import load_dotenv
 import os
+import threading
 
 load_dotenv()
 
@@ -17,6 +18,13 @@ def create_app() -> Flask:
 
     ConfigStore.init()
     setup_loggers(app)
+
+    from . import version_checker
+    update_thread = threading.Thread(
+        target=version_checker.check_for_updates_thread,
+        daemon=True
+    )
+    update_thread.start()
 
     from .routes import bp as routes_bp
     app.register_blueprint(routes_bp)
@@ -39,6 +47,8 @@ def create_app() -> Flask:
         except Exception:
             theme = "auto"  # Fallback
 
-        return dict(default_theme=theme)
+        return dict(default_theme=theme,
+            update_available=version_checker.get_update_status()
+        )
 
     return app

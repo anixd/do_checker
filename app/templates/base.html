@@ -36,6 +36,11 @@
     </nav>
 
     <div class="theme-switcher">
+
+      {% if update_available %}
+        <span class="update-plaque">New version available</span>
+      {% endif %}
+
       <span class="theme-icon" id="theme-icon-moon" title="Switch to Dark Mode">☽</span>
       <span class="theme-icon" id="theme-icon-sun" title="Switch to Light Mode">☼</span>
       <input type="checkbox" id="theme-toggle" class="theme-toggle-input">

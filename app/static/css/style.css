@@ -609,3 +609,15 @@ label.checkbox-label code {
     padding: 0;
     font-size: 1em;
 }
+.update-plaque {
+    font-size: 12px;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-right: 32px; /* Отступ до theme toggle */
+    white-space: nowrap;
+
+    color: var(--c-flash-info-text);
+    background-color: var(--c-flash-info-bg);
+    border: 1px solid var(--c-flash-info-border);
+}
