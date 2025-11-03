@@ -158,4 +158,5 @@ work/
 **/.DS_Store
 
 logs/
-
+data/catalog/
+data/config/

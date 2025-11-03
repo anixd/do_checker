@@ -13,8 +13,10 @@ if [ ! -f "$APP_YAML" ]; then
 app:
   host: 127.0.0.1
   port: ${APP_PORT:-8888}
+  # themes: 'auto', 'light' or 'dark'
   default_theme: auto
 logging:
+  # Log levels: DEBUG, INFO, WARNING, ERROR
   level: "INFO"
 paths:
   logs_dir: /logs
@@ -60,6 +62,13 @@ http_client:
   accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
   accept_language: "en-US,en;q=0.5"
   custom_headers: {}
+    # NOTE: If the 'custom_headers' section is empty, it MUST contain curly braces:
+    # 'custom_headers: {}'
+    # When adding custom headers, the curly braces {} MUST be removed.
+    # custom_headers entries format:
+    #  X-CF-Bypass: "MySecretToken123"
+    #  Another-Header: "SomeValue"
+    #  User-Referer: "https://example.com/"
 dns_checker:
   # key: Canonical name (displayed in the UI)
   # value: List of keywords for Whois/RDAP search
