@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: docker/Dockerfile
 
-    image: do-checker:20251028
+    image: do-checker:2025110301
     container_name: do-checker
 
     env_file:

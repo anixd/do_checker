@@ -13,6 +13,7 @@ if [ ! -f "$APP_YAML" ]; then
 app:
   host: 127.0.0.1
   port: ${APP_PORT:-8888}
+  default_theme: auto
 logging:
   level: "INFO"
 paths:
@@ -21,6 +22,18 @@ paths:
 execution:
   max_concurrency: 3
   timeout_sec: 60
+http_client:
+  user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+  accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+  accept_language: "en-US,en;q=0.5"
+  custom_headers: {}
+    # NOTE: If the 'custom_headers' section is empty, it MUST contain curly braces:
+    # 'custom_headers: {}'
+    # When adding custom headers, the curly braces {} MUST be removed.
+    # custom_headers entries format:
+    #  X-CF-Bypass: "MySecretToken123"
+    #  Another-Header: "SomeValue"
+    #  User-Referer: "https://example.com/"
 proxy:
   type: http
   dns_mode: proxy
@@ -32,10 +45,10 @@ screenshots:
   width: 1366
   height: 768
   timeout_sec: 30
-  wait_after_load_sec: 0
+  wait_after_load_sec: 15
 soax:
   host: proxy.soax.com
-  port_default_port: 9000
+  port_default_port: 9001
   port_login: ""
   port_sticky: 5000
   package_id: null
@@ -48,7 +61,13 @@ http_client:
   accept_language: "en-US,en;q=0.5"
   custom_headers: {}
 dns_checker:
-  provider_keywords: {}
+  # key: Canonical name (displayed in the UI)
+  # value: List of keywords for Whois/RDAP search
+  provider_keywords:
+    "Cloudflare": ["Cloudflare", "CLOUDFLARE", "CFN"]
+    "Google Cloud": ["Google LLC", "GOOGLE", "GCP"]
+    "Amazon AWS": ["Amazon", "AWS", "AMAZON-02", "Amazon Technologies Inc."]
+    "CloudKleyer": ["CloudKleyer", "DE-CLOUDKLEYER"]
 YAML
 fi
 
@@ -60,16 +79,16 @@ if [ ! -f "$SOAX_JSON" ]; then
   "version": 1,
   "generated_at": "2025-10-25T00:00:00Z",
   "countries": [
-    {"code": "kz", "name": "Kazakhstan", "regions":[{"code":"kz-ala","name":"Almaty"}], "isps":["Kazakhtelecom"]},
-    {"code": "az", "name": "Azerbaijan", "regions":[], "isps":[]},
-    {"code": "in", "name": "India", "regions":[], "isps":[]},
-    {"code": "uz", "name": "Uzbekistan", "regions":[], "isps":[]},
-    {"code": "bd", "name": "Bangladesh", "regions":[], "isps":[]},
-    {"code": "ru", "name": "Russia", "regions":[], "isps":[]},
-    {"code": "tr", "name": "Turkey", "regions":[{"code":"tr-35","name":"Izmir Province"}], "isps":["Turk Telekom","Vodafone TR","Turkcell"]},
-    {"code": "kg", "name": "Kyrgyzstan", "regions":[], "isps":[]},
-    {"code": "ca", "name": "Canada", "regions":[], "isps":[]},
-    {"code": "tj", "name": "Tajikistan", "regions":[], "isps":[]}
+    {"code": "kz", "name": "Kazakhstan", "regions":[], "cities": [], "isps":[]},
+    {"code": "az", "name": "Azerbaijan", "regions":[], "cities": [], "isps":[]},
+    {"code": "in", "name": "India", "regions":[], "cities": [], "isps":[]},
+    {"code": "uz", "name": "Uzbekistan", "regions":[], "cities": [], "isps":[]},
+    {"code": "bd", "name": "Bangladesh", "regions":[], "cities": [], "isps":[]},
+    {"code": "ru", "name": "Russia", "regions":[], "cities": [], "isps":[]},
+    {"code": "tr", "name": "Turkey", "regions":[], "cities": [], "isps":[]},
+    {"code": "kg", "name": "Kyrgyzstan", "regions":[], "cities": [], "isps":[]},
+    {"code": "ca", "name": "Canada", "regions":[], "cities": [], "isps":[]},
+    {"code": "tj", "name": "Tajikistan", "regions":[], "cities": [], "isps":[]}
   ]
 }
 JSON

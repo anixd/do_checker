@@ -7,6 +7,7 @@ from typing import Any, Dict, List
 class AppCfg:
     host: str
     port: int
+    default_theme: str
 
 
 @dataclass
@@ -101,6 +102,9 @@ class ConfigStore:
             print(f"       (Make sure ./data/config/app.yaml exists locally)")
             raise
 
+        if "app" in data and "default_theme" not in data["app"]:
+            data["app"]["default_theme"] = "auto"
+
         # defaults для logger
         if "logging" not in data:
             data["logging"] = {"level": "INFO"}
@@ -169,6 +173,7 @@ class ConfigStore:
         env_map = {
             "APP_HOST": (cfg.app, "host"),
             "APP_PORT": (cfg.app, "port", int),
+            "DEFAULT_THEME": (cfg.app, "default_theme"),
             "LOG_LEVEL": (cfg.logging, "level"),
             "LOG_DIR": (cfg.paths, "logs_dir"),
             "DATA_DIR": (cfg.paths, "data_dir"),

@@ -10,6 +10,7 @@ from engine.orchestrator import start_run, get_run_state, start_dns_run
 from config.loader import ConfigStore
 from providers.soax import CatalogStore, refresh_catalog_data
 from logging_.engine_logger import get_engine_logger
+from .utils import render_markdown_file
 
 log = get_engine_logger()
 
@@ -24,6 +25,7 @@ def index():
 
     return render_template(
         "index.html",
+        active_page="checker",
         countries=countries,
         defaults=dict(
             # Proxy defaults
@@ -97,7 +99,11 @@ def launch_run():
 @bp.get("/catalog")
 def catalog():
     # используем get_countries() для загрузки всего кеша
-    return render_template("catalog.html", catalog=CatalogStore._load_or_cache(force_reload=True))
+    return render_template(
+        "catalog.html",
+        active_page="catalog",
+        catalog=CatalogStore._load_or_cache(force_reload=True)
+    )
 
 
 @bp.post("/catalog/refresh")
@@ -115,7 +121,7 @@ def catalog_refresh():
     )
     thread.start()
 
-    flash("Catalog refresh started in the background. It may take a minute.", "info")
+    flash("Catalog refresh started in the background. It may take a minute.", "catalog")
 
     return redirect(url_for("routes.catalog"))
 
@@ -150,11 +156,11 @@ def catalog_update_list():
 
         CatalogStore.update_country_list(final_codes_list)
 
-        flash("Catalog country list updated successfully.", "info")  # 'info' for blue flash
+        flash("Catalog country list updated successfully.", "catalog")
 
     except Exception as e:
         log.error(f"Failed to update catalog list: {e}", exc_info=True)
-        flash(f"Error updating catalog: {e}", "error")
+        flash(f"Error updating catalog: {e}", "catalog")
 
     return redirect(url_for("routes.catalog"))
 
@@ -162,13 +168,19 @@ def catalog_update_list():
 @bp.get("/settings")
 def settings():
     yaml = ConfigStore.raw_yaml()
-    return render_template("settings.html", yaml=yaml)
+    return render_template(
+        "settings.html",
+        active_page="settings",
+        yaml=yaml
+    )
 
 
 @bp.post("/settings")
 def settings_save():
     yaml_text = request.form.get("yaml") or ""
     ConfigStore.save_yaml(yaml_text)
+    # flash-сообщение для страницы settings
+    flash("Settings saved successfully.", "settings")
     return redirect(url_for("routes.settings"))
 
 
@@ -199,7 +211,6 @@ def api_get_isps():
 
 @bp.post("/logs/clear")
 def clear_logs():
-    """Удаляет содержимое /logs"""
     cfg = ConfigStore.get()
     logs_dir = os.path.abspath(cfg.paths.logs_dir)
 
@@ -208,12 +219,12 @@ def clear_logs():
     # Проверка, что /logs существует и это действительно dir
     if not os.path.isdir(logs_dir):
         log.error(f"Log directory not found or is not a directory: {logs_dir}")
-        flash("Error: Log directory not found.", "error")
+        flash("Error: Log directory not found.", "checker")
         return jsonify({"success": False, "message": "Log directory not found"}), 500
 
-    if 'logs' not in logs_dir.split(os.path.sep)[-2:]:  # Проверим последние два компонента пути
+    if 'logs' not in logs_dir.split(os.path.sep)[-2:]:  # Проверянм последние два компонента пути
         log.error(f"Safety check failed: Log directory path seems unsafe: {logs_dir}")
-        flash("Error: Log directory path seems unsafe.", "error")
+        flash("Error: Log directory path seems unsafe.", "checker")
         return jsonify({"success": False, "message": "Unsafe log directory path"}), 500
 
     try:
@@ -229,24 +240,25 @@ def clear_logs():
                 log.error(f"Failed to delete {file_path}. Reason: {e}")
 
         log.info(f"Successfully cleared contents of log directory: {logs_dir}")
-        flash("Logs cleared successfully.", "success")
+        flash("Logs cleared successfully.", "checker")
         return jsonify({"success": True}), 200
 
     except Exception as e:
         log.error(f"Failed to clear log directory {logs_dir}: {e}", exc_info=True)
-        flash(f"Error clearing logs: {e}", "error")
+        flash(f"Error clearing logs: {e}", "checker")
         return jsonify({"success": False, "message": str(e)}), 500
 
 
 @bp.get("/dns-checker")
 def dns_checker_page():
-    """Renders the DNS checker page."""
-    return render_template("dns_checker.html")
+    return render_template(
+        "dns_checker.html",
+        active_page="dns_tools"
+    )
 
 
 @bp.post("/check-dns")
 def launch_dns_run():
-    """Handles the form submission from the DNS checker page."""
     domains_raw = (request.form.get("domains") or "").strip()
     domains = [d.strip() for d in domains_raw.splitlines() if d.strip()]
 
@@ -264,4 +276,14 @@ def launch_dns_run():
     log.info(f"[{run_id}] Returning HTTP 202 for DNS run.")
 
     return jsonify({"run_id": run_id}), 202  # Accepted
+
+
+@bp.get("/help")
+def help_page():
+    help_html = render_markdown_file("help.md")
+    return render_template(
+        "help.html",
+        active_page="help",
+        help_content=help_html
+    )
 

@@ -29,4 +29,16 @@ def create_app() -> Flask:
     from .static_server import static_bp
     app.register_blueprint(static_bp)
 
+    @app.context_processor
+    def inject_default_theme():
+        """
+        Injects the default_theme setting into all templates.
+        """
+        try:
+            theme = ConfigStore.get().app.default_theme
+        except Exception:
+            theme = "auto"  # Fallback
+
+        return dict(default_theme=theme)
+
     return app
