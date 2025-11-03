@@ -1,0 +1,67 @@
+<!doctype html>
+<html data-default-theme="{{ default_theme | default('auto') }}">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ title | default('DO Checker') }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="shortcut icon" href="{{ url_for('static', filename='img/do.ico') }}">
+
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+</head>
+<body
+  data-regions-url="{{ url_for('routes.api_get_regions') }}"
+  data-cities-url="{{ url_for('routes.api_get_cities') }}"
+  data-isps-url="{{ url_for('routes.api_get_isps') }}"
+  data-events-url="{{ url_for('sse.events', run_id='') }}"
+  data-check-dns-url="{{ url_for('routes.launch_dns_run') }}"
+>
+
+  <div class="nav-container">
+    <nav class="tabs">
+      <a href="{{ url_for('routes.index') }}"
+         class="{{ 'active' if active_page == 'checker' else '' }}"
+         target="_blank">Checker</a>
+      <a href="{{ url_for('routes.dns_checker_page') }}"
+         class="{{ 'active' if active_page == 'dns_tools' else '' }}"
+         target="_blank">DNS Tools</a>
+      <a href="{{ url_for('routes.catalog') }}"
+         class="{{ 'active' if active_page == 'catalog' else '' }}"
+         target="_blank" rel="noopener noreferrer">Geo Catalog</a>
+      <a href="{{ url_for('routes.settings') }}"
+         class="{{ 'active' if active_page == 'settings' else '' }}"
+         target="_blank" rel="noopener noreferrer">Settings</a>
+      <a href="{{ url_for('routes.help_page') }}"
+         class="{{ 'active' if active_page == 'help' else '' }}"
+         target="_blank" rel="noopener noreferrer">Help</a>
+    </nav>
+
+    <div class="theme-switcher">
+      <span class="theme-icon" id="theme-icon-moon" title="Switch to Dark Mode">☽</span>
+      <span class="theme-icon" id="theme-icon-sun" title="Switch to Light Mode">☼</span>
+      <input type="checkbox" id="theme-toggle" class="theme-toggle-input">
+      <label for="theme-toggle" class="theme-toggle-label" title="Toggle theme"></label>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true, category_filter=[active_page | default('checker')]) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        {#
+          'category' здесь будет 'checker', 'catalog' и т.д.
+          Мы используем CSS-класс flash-info (синий), т.к. flash-error/success пока не нужны.
+        #}
+        <div class="flash-message flash-info" role="alert">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+</body>
+</html>

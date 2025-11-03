@@ -1,67 +1,6 @@
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>DNS Checker</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <link rel="shortcut icon" href="{{ url_for('static', filename='img/do.ico') }}">
-  <style>
-    /* Дополнительные стили для DNS карточек */
-    .dns-result-card {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 12px 16px;
-      margin-bottom: 12px;
-      display: grid;
-      grid-template-columns: 40px 1.5fr 1fr 100px;
-      gap: 16px;
-      align-items: center;
-    }
-    .dns-result-card strong { font-size: 1.1em; }
-    .dns-result-card .status { font-weight: bold; }
-    .dns-result-card .status-icon { font-size: 24px; }
-    .dns-result-card .ips-list { font-size: 13px; color: #555; margin-top: 4px; }
-    .dns-result-card .owner-info { font-size: 14px; color: #333; }
-    .dns-result-header {
-      grid-column: 1 / -1;
-      padding-bottom: 8px;
-      border-bottom: 1px solid #eee;
-      font-size: 14px;
-      color: #555;
-    }
-    .status-success { color: #0a7d00; }
-    .status-error { color: #b00020; }
-    .btn-details {
-      display: inline-block;
-      padding: 6px 12px;
-      border: 2px solid #a00;
-      border-radius: 6px;
-      color: #a00;
-      font-weight: 500;
-      text-decoration: none;
-      text-align: center;
-      font-size: 14px;
-      background-color: #fff;
-    }
-    .btn-details:hover {
-      background-color: #f7f7f7;
-      border-color: #d00;
-      color: #d00;
-    }
-  </style>
-</head>
-<body
-  data-events-url="{{ url_for('sse.events', run_id='') }}"
-  data-check-dns-url="{{ url_for('routes.launch_dns_run') }}"
->
+{% extends "base.html" %}
 
-  <nav class="tabs">
-    <a href="{{ url_for('routes.index') }}" target="_blank">Checker</a>
-    <a href="{{ url_for('routes.dns_checker_page') }}" target="_blank" class="active">DNS Tools</a>
-    <a href="{{ url_for('routes.catalog') }}" target="_blank" rel="noopener noreferrer">Geo Catalog</a>
-    <a href="{{ url_for('routes.settings') }}" target="_blank" rel="noopener noreferrer">Settings</a>
-  </nav>
-
+{% block content %}
   <h1 class="mb-2">DNS & Whois Checker</h1>
 
   <form method="post" action="{{ url_for('routes.launch_dns_run') }}" id="dns-check-form">
@@ -82,8 +21,5 @@
   </form>
 
   <div id="dns-results-container" class="mt-3">
-    </div>
-
-  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-  </body>
-</html>
+  </div>
+{% endblock %}
