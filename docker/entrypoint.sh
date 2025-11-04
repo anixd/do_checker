@@ -88,16 +88,16 @@ if [ ! -f "$SOAX_JSON" ]; then
   "version": 1,
   "generated_at": "2025-10-25T00:00:00Z",
   "countries": [
-    {"code": "kz", "name": "Kazakhstan", "regions":[], "cities": [], "isps":[]},
-    {"code": "az", "name": "Azerbaijan", "regions":[], "cities": [], "isps":[]},
-    {"code": "in", "name": "India", "regions":[], "cities": [], "isps":[]},
-    {"code": "uz", "name": "Uzbekistan", "regions":[], "cities": [], "isps":[]},
-    {"code": "bd", "name": "Bangladesh", "regions":[], "cities": [], "isps":[]},
-    {"code": "ru", "name": "Russia", "regions":[], "cities": [], "isps":[]},
-    {"code": "tr", "name": "Turkey", "regions":[], "cities": [], "isps":[]},
-    {"code": "kg", "name": "Kyrgyzstan", "regions":[], "cities": [], "isps":[]},
-    {"code": "ca", "name": "Canada", "regions":[], "cities": [], "isps":[]},
-    {"code": "tj", "name": "Tajikistan", "regions":[], "cities": [], "isps":[]}
+    {"code": "kz", "name": "Kazakhstan", "cities": [], "regions":[], "isps":[]},
+    {"code": "az", "name": "Azerbaijan", "cities": [], "regions":[], "isps":[]},
+    {"code": "in", "name": "India", "cities": [], "regions":[], "isps":[]},
+    {"code": "uz", "name": "Uzbekistan", "cities": [], "regions":[], "isps":[]},
+    {"code": "bd", "name": "Bangladesh", "cities": [], "regions":[], "isps":[]},
+    {"code": "ru", "name": "Russia", "cities": [], "regions":[], "isps":[]},
+    {"code": "tr", "name": "Turkey", "cities": [], "regions":[], "isps":[]},
+    {"code": "kg", "name": "Kyrgyzstan", "cities": [], "regions":[], "isps":[]},
+    {"code": "ca", "name": "Canada", "cities": [], "regions":[], "isps":[]},
+    {"code": "tj", "name": "Tajikistan", "cities": [], "regions":[], "isps":[]}
   ]
 }
 JSON
