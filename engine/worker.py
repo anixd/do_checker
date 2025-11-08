@@ -19,7 +19,6 @@ except Exception:
 
 log = get_engine_logger()
 
-# create global semaphore
 screenshot_semaphore: threading.Semaphore | None = None
 _semaphore_lock = threading.Lock()  # lock для инициализации семафора
 
@@ -96,7 +95,7 @@ def _measure_http(url: str, proxies: dict, timeout_sec: int, max_redirects: int 
         raise e
     end = time.time()
     timings["total_ms"] = int((end - start) * 1000)
-    return http_status, bytes_count, redirects, timings
+    return http_status, bytes_count, redirects, timings, headers
 
 
 def _classify(exc: Exception | None, http_status: int | None, timeout_sec: int) -> str:
@@ -136,10 +135,12 @@ def _take_screenshot(
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
+            # добавляем custom_headers в new_context playwright
             ctx = browser.new_context(
                 viewport={"width": width, "height": height},
                 user_agent=cfg.http_client.user_agent,
-                proxy=playwright_proxy
+                proxy=playwright_proxy,
+                extra_http_headers=cfg.http_client.custom_headers
             )
             page = ctx.new_page()
             # Use screenshot timeout (convert to ms)
@@ -156,7 +157,7 @@ def _take_screenshot(
                 )
                 page.wait_for_timeout(wait_after_load_sec * 1000)
 
-            page.screenshot(path=out_path) # делаем скрин _видимой_ части страницы.
+            page.screenshot(path=out_path)  # делаем скрин _видимой_ части страницы.
             # full_page=True делает скрин ВСЕЙ высоты страницы (если нужно)
             browser.close()
         return True, None
@@ -184,7 +185,7 @@ def execute_check(run_params: dict[str, Any]) -> dict:
     run_id_for_log = run_params.get('run_id', 'NO_RUN_ID')
     url = run_params["url"]
     log.debug(f"[{run_id_for_log}] execute_check started for {url}")
-    
+
     timeout_sec = run_params["timeout_sec"]
     make_screenshot = run_params["make_screenshot"]
     debug_mode = run_params.get("debug_mode", False)
@@ -205,6 +206,7 @@ def execute_check(run_params: dict[str, Any]) -> dict:
     timings = {}
     notes = None
     exc = None
+    sent_headers = None
 
     try:
         log.debug(f"[{run_id_for_log}] Calling get_session for {url}...")
@@ -213,7 +215,7 @@ def execute_check(run_params: dict[str, Any]) -> dict:
 
         proxies = _requests_proxies(ps, dns_mode)
         log.debug(f"[{run_id_for_log}] Calling _measure_http for {url}...")
-        http_status, bytes_count, redirects, timings = _measure_http(url_full, proxies, timeout_sec)
+        http_status, bytes_count, redirects, timings, sent_headers = _measure_http(url_full, proxies, timeout_sec)
     except Exception as e:
         exc = e
         notes = str(e)
@@ -221,6 +223,10 @@ def execute_check(run_params: dict[str, Any]) -> dict:
             debug_data = {"error": str(e)}
 
         log.warning(f"[{run_id_for_log}] _measure_http failed for {url}: {e}")
+
+    # Добавляем хедеры в debug_info (if debug_mode is on)
+    if debug_mode and debug_data and sent_headers:
+        debug_data["http_request_headers"] = sent_headers
 
     result = _classify(exc, http_status, timeout_sec)
     log.debug(f"[{run_id_for_log}] Result for {url}: {result}")
