@@ -77,38 +77,36 @@ document.addEventListener("DOMContentLoaded", () => {
     const resultsContainer = document.getElementById("results-container");
     let currentEventSource = null;
 
-    if (form && resetButton && regionSelect && citySelect && ispSelect) {
-        form.addEventListener("reset", (event) => {
-            // Стандартный сброс (<input>, <textarea>, <select>) уже произошел.
-            // Нам нужно дополнительно обработать зависимые дропдауны.
+    if (form && resetButton) {
+    form.addEventListener("reset", (event) => {
+        setTimeout(() => {
+            // чистим зависимые селекторы, только если они существуют на странице
+            if (regionSelect) populateSelect(regionSelect, [], 'region');
+            if (citySelect) populateSelect(citySelect, [], 'city');
+            if (ispSelect) populateSelect(ispSelect, [], 'isp');
 
-            // Используем setTimeout, чтобы наш код сработал *после*
-            // стандартного сброса браузером.
-            setTimeout(() => {
-                // Сбрасываем и дизейблим зависимые дропдауны
-                populateSelect(regionSelect, [], 'region');
-                populateSelect(citySelect, [], 'city');
-                populateSelect(ispSelect, [], 'isp');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = '';
+            }
 
-                // Опционально: Очистить контейнер результатов
-                const resultsContainer = document.getElementById("results-container");
-                if (resultsContainer) {
-                    resultsContainer.innerHTML = '';
-                }
+            const urlsTextarea = document.getElementById("urls");
+            if (urlsTextarea) {
+                urlsTextarea.focus();
+            }
+        }, 0);
+    });
+}
 
-                // Опционально: Вернуть фокус на первое поле (textarea)
-                const urlsTextarea = document.getElementById("urls");
-                if (urlsTextarea) {
-                    urlsTextarea.focus();
-                }
-            }, 0); // Нулевая задержка выполнит код после текущего цикла событий
-        });
-    }
+    const getCardId = (payload) => {
+        const cleanUrl = payload.url.replace(/[^a-zA-Z0-9]/g, "");
+        const geoSuffix = payload.country ? `-${payload.country.toLowerCase()}` : '';
+        return `result-${payload.run_id}-${cleanUrl}${geoSuffix}`;
+    };
 
     const renderCard = (payload) => {
         const card = document.createElement("div");
         card.className = "result-card";
-        card.id = `result-${payload.run_id}-${payload.url.replace(/[^a-zA-Z0-9]/g, "")}`;
+        card.id = getCardId(payload);
         let icon = "🔄";
         let statusClass = "";
         let statusText = payload.type === 'check_started' ? 'Running...' : payload.result;
@@ -136,7 +134,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         card.innerHTML = `
             <div class="status-icon">${icon}</div>
-            <div> <strong>${payload.url}</strong> <div class="timings">${details}</div> </div>
+            <div> 
+                <strong>${payload.url}</strong> 
+                ${payload.country ? `<span class="code" style="margin-left: 8px; color: var(--c-text-muted); font-size: 0.9em;">[${payload.country.toUpperCase()}]</span>` : ''}
+                <div class="timings">${details}</div> 
+            </div>
             <div class="status ${statusClass}">${statusText}</div>
             ${screenshotHtml}`;
         return card;
@@ -193,11 +195,15 @@ document.addEventListener("DOMContentLoaded", () => {
             } else if (payload.type === 'check_started') {
                 resultsContainer.append(renderCard(payload));
             } else if (payload.type === 'check_finished') {
-                const cardId = `result-${payload.run_id}-${payload.url.replace(/[^a-zA-Z0-9]/g, "")}`;
-                const existingCard = document.getElementById(cardId);
-                if (existingCard) { existingCard.replaceWith(renderCard(payload)); }
-                else { resultsContainer.append(renderCard(payload)); }
-            } else if (payload.type === 'run_finished') {
+                const cardId = getCardId(payload);
+
+            const existingCard = document.getElementById(cardId);
+            if (existingCard) {
+                existingCard.replaceWith(renderCard(payload));
+            } else {
+                resultsContainer.append(renderCard(payload));
+            }
+        } else if (payload.type === 'run_finished') {
                 const statusEl = document.getElementById(`run-status-${payload.run_id}`);
                 if (statusEl) { statusEl.textContent = `(Finished in ${payload.totals.time_ms / 1000}s. OK: ${payload.totals.ok}, Err: ${payload.totals.err})`; }
                 runButton.disabled = false; runButton.textContent = "Run checks";
@@ -238,7 +244,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // DNS checker
-
     const dnsForm = document.getElementById("dns-check-form");
     const dnsRunButton = document.getElementById("run-dns-check-button");
     const dnsResultsContainer = document.getElementById("dns-results-container");
@@ -415,5 +420,4 @@ document.addEventListener("DOMContentLoaded", () => {
          };
       });
     }
-
   });
