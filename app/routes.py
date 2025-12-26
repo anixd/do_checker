@@ -287,3 +287,71 @@ def help_page():
         help_content=help_html
     )
 
+
+@bp.get("/multi-geo")
+def multi_geo_page():
+    cfg = ConfigStore.get()
+    return render_template(
+        "multi_geo.html",
+        active_page="multi_geo",
+        countries=[], # Здесь список для гео-выпадайки не нужен
+        defaults=dict(
+            proxy_type=cfg.proxy.type,
+            dns_mode=cfg.proxy.dns_mode,
+            soax_host=cfg.soax.host,
+            soax_port_default=cfg.soax.port_default_port,
+            timeout_sec=cfg.execution.timeout_sec,
+            screenshots_enabled=cfg.screenshots.enabled_default,
+        ),
+        logs_dir=cfg.paths.logs_dir,
+    )
+
+
+@bp.post("/run-multi-geo")
+def launch_multi_geo_run():
+    urls_raw = (request.form.get("urls") or "").strip()
+    lines = [line.strip() for line in urls_raw.splitlines() if line.strip()]
+
+    if not lines:
+        log.warning("Multi-Geo Run rejected: No input provided.")
+        return Response("No URLs and countries provided", status=400)
+
+    tasks = []
+    for line in lines:
+        parts = line.split()
+        if len(parts) >= 2:
+            # Валидный формат: url cc
+            tasks.append({
+                "url": parts[0],
+                "country": parts[1].lower()
+            })
+        else:
+            # Ошибка формата: записываем как задачу с ошибкой, чтобы вывести в UI
+            tasks.append({
+                "url": parts[0] if parts else "Unknown",
+                "country": None,
+                "parsing_error": "Invalid format (expected: url cc)"
+            })
+
+    # Собираем общие параметры (те же, что и в обычном чекере)
+    run_params = {
+        "tasks": tasks,  # Вместо плоского списка urls передаем список задач
+        "proxy_type": request.form.get("proxy_type") or "http",
+        "dns_mode": request.form.get("dns_mode") or "proxy",
+        "connection_type": request.form.get("connection_type") or "wifi",
+        "proxy_host": request.form.get("proxy_host") or None,
+        "proxy_port": request.form.get("proxy_port") or None,
+        "timeout_sec": int(request.form.get("timeout_sec") or 60),
+        "make_screenshot": bool(request.form.get("make_screenshot")),
+        "debug_mode": bool(request.form.get("debug_mode")),
+        "multi_geo": True  # Флаг для оркестратора
+    }
+
+    log.info(f"Accepted /run-multi-geo request. Lines: {len(tasks)}. Starting run...")
+
+    # Вызываем новую функцию в оркестраторе (сейчас создадим её заглушку)
+    from engine.orchestrator import start_multi_geo_run
+    run_id = start_multi_geo_run(run_params)
+
+    return jsonify({"run_id": run_id}), 202
+

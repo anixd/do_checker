@@ -20,7 +20,10 @@
     <nav class="tabs">
       <a href="{{ url_for('routes.index') }}"
          class="{{ 'active' if active_page == 'checker' else '' }}"
-         target="_blank">Checker</a>
+         target="_blank">Main checker</a>
+      <a href="{{ url_for('routes.multi_geo_page') }}"
+         class="{{ 'active' if active_page == 'multi_geo' else '' }}"
+         target="_blank">Multi-Geo checker</a>
       <a href="{{ url_for('routes.dns_checker_page') }}"
          class="{{ 'active' if active_page == 'dns_tools' else '' }}"
          target="_blank">DNS Tools</a>

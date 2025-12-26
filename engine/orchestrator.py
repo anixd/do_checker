@@ -114,6 +114,7 @@ def _run_checks_async(run_params: dict[str, Any], run_id: str):
 
         row = {
             "url": u,
+            "country": task_params.get("country"),
             "result": res["classification"],
             "http_code": res.get("http_code"),
             "ttfb_ms": res.get("timings", {}).get("ttfb_ms"),
@@ -180,6 +181,9 @@ def start_run(run_params: dict[str, Any]) -> str:
     """
     run_id = uuid.uuid4().hex[:12]
     total = len(run_params.get("urls", []))
+
+    ts_folder = datetime.now().strftime("%H-%M-%S") + "_std-check"
+    run_params["subfolder"] = ts_folder
 
     _engine_logger.info(f"[{run_id}] Creating run state (Total: {total} URLs).")
 
@@ -340,3 +344,142 @@ def start_dns_run(domains: list[str]) -> str:
 
     return run_id
 
+
+def start_multi_geo_run(run_params: dict[str, Any]) -> str:
+    run_id = uuid.uuid4().hex[:12]
+    tasks = run_params.get("tasks", [])
+    total = len(tasks)
+
+    _engine_logger.info(f"[{run_id}] Creating Multi-Geo run state (Total: {total} tasks).")
+
+    # Инициализируем состояние запуска
+    state = {
+        "run_id": run_id,
+        "total": total,
+        "done": 0,
+        "rows": [],
+        "started_at": time.time(),
+    }
+    with _lock:
+        _runs_state[run_id] = state
+
+    # Подписываемся на SSE
+    sse_subscribe(run_id)
+
+    ts_folder = datetime.now().strftime("%H-%M-%S") + "_multi-geo"
+    run_params["subfolder"] = ts_folder  # Передадим это воркеру
+
+    # Стартовое событие для фронта
+    _sse_emit(run_id, {
+        "type": "run_started",
+        "run_id": run_id,
+        "ts": datetime.now().isoformat(timespec="seconds"),
+        "settings": {
+            "country": "MULTI",  # Пометка для заголовка
+            "urls": {str(i): t['url'] for i, t in enumerate(tasks)}
+        }
+    })
+
+    # Запуск фонового процесса
+    thread = threading.Thread(
+        target=_run_multi_geo_async,
+        args=(run_params, run_id),
+        daemon=True
+    )
+    thread.start()
+
+    return run_id
+
+
+def _run_multi_geo_async(run_params: dict[str, Any], run_id: str):
+    _engine_logger.info(f"[{run_id}] Multi-Geo background thread started.")
+    cfg = ConfigStore.get()
+    tasks = run_params.get("tasks", [])
+
+    def worker_task(task_item: dict):
+        url = task_item["url"]
+        country = task_item.get("country")
+
+        if "parsing_error" in task_item:
+            row = {
+                "url": url,
+                "country": country,
+                "result": "error",
+                "notes": task_item["parsing_error"]
+            }
+            _sse_emit(run_id, {"type": "check_finished", "run_id": run_id, **row})
+            return row
+
+        task_specific = run_params.copy()
+        task_specific.update({
+            "url": url,
+            "country": country,
+            "run_id": run_id,
+            "region_code": None,
+            "city": None,
+            "isp": None
+        })
+
+        _sse_emit(run_id, {
+            "type": "check_started",
+            "run_id": run_id, "url": url, "country": country
+        })
+
+        try:
+            res = execute_check(task_specific)
+        except Exception as e:
+            _engine_logger.error(f"[{run_id}] Worker failed for {url}: {e}")
+            # АХТУНГ! Нужно вернуть _полную_ структуру, чтобы не упасть ниже
+            res = {
+                "classification": "connect_error",
+                "notes": f"Worker failed: {e}",
+                "timings": {},
+                "md_path": "error.md",
+                "proxy_ext_ip": None,
+                "png_path": None,
+            }
+
+        png_relative_path = ""
+        if res.get("png_path"):
+            try:
+                png_relative_path = os.path.relpath(res["png_path"], cfg.paths.logs_dir)
+                png_relative_path = png_relative_path.replace(os.path.sep, '/')
+            except Exception:
+                png_relative_path = os.path.basename(res["png_path"])
+
+        row = {
+            "url": url,
+            "country": country,
+            "result": res["classification"],
+            "http_code": res.get("http_code"),
+            "ttfb_ms": res.get("timings", {}).get("ttfb_ms"),
+            "ext_ip": res.get("proxy_ext_ip") or "-",
+            "md_name": os.path.basename(res.get("md_path", "")),
+            "png_name": png_relative_path,
+            "notes": res.get("notes")
+        }
+        _sse_emit(run_id, {"type": "check_finished", "run_id": run_id, **row})
+        return row
+
+    with ThreadPoolExecutor(max_workers=cfg.execution.max_concurrency) as pool:
+        futs = [pool.submit(worker_task, t) for t in tasks]
+        for fut in as_completed(futs):
+            try:
+                row = fut.result()
+                with _lock:
+                    _runs_state[run_id]["rows"].append(row)
+                    _runs_state[run_id]["done"] += 1
+            except Exception as e:
+                _engine_logger.error(f"[{run_id}] Multi-Geo Future fatal: {e}")
+
+    st = _runs_state[run_id]
+    _sse_emit(run_id, {
+        "type": "run_finished",
+        "run_id": run_id,
+        "totals": {
+            "ok": sum(1 for r in st["rows"] if r.get("result") == "success"),
+            "err": sum(1 for r in st["rows"] if r.get("result") != "success"),
+            "time_ms": int((time.time() - st["started_at"]) * 1000)
+        }
+    })
+    sse_unsubscribe(run_id)

@@ -159,6 +159,7 @@ def _take_screenshot(
 
             page.screenshot(path=out_path)  # делаем скрин _видимой_ части страницы.
             # full_page=True делает скрин ВСЕЙ высоты страницы (если нужно)
+            # TODO: вынести этот параметр в конфиг
             browser.close()
         return True, None
     except Exception as e:
@@ -182,6 +183,11 @@ def execute_check(run_params: dict[str, Any]) -> dict:
     logs_dir = cfg.paths.logs_dir
     day_dir = ensure_day_dir(logs_dir)
 
+    target_dir = day_dir
+    if run_params.get("subfolder"):
+        target_dir = os.path.join(day_dir, run_params["subfolder"])
+        os.makedirs(target_dir, exist_ok=True)
+
     run_id_for_log = run_params.get('run_id', 'NO_RUN_ID')
     url = run_params["url"]
     log.debug(f"[{run_id_for_log}] execute_check started for {url}")
@@ -195,7 +201,7 @@ def execute_check(run_params: dict[str, Any]) -> dict:
     ts = datetime.now().strftime("%H-%M-%S")
     base_name = f"{ts}_{domain}"
 
-    md_path = unique_file_path(day_dir, base_name, "md")
+    md_path = unique_file_path(target_dir, base_name, "md")
     png_path = None
 
     ps = None
@@ -233,8 +239,8 @@ def execute_check(run_params: dict[str, Any]) -> dict:
 
     # логика скриншота, с семафором
     if make_screenshot and result == "success":
-        png_path = unique_file_path(day_dir, base_name, "png")
-        screenshot_timeout = cfg.screenshots.timeout_sec
+        png_path = unique_file_path(target_dir, base_name, "png")
+        screenshot_timeout = timeout_sec + cfg.screenshots.wait_after_load_sec + 5
 
         log.info(f"Acquiring screenshot semaphore for {url}...")
         with screenshot_semaphore:
