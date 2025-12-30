@@ -11,6 +11,7 @@ from config.loader import ConfigStore
 from providers.soax import CatalogStore, refresh_catalog_data
 from logging_.engine_logger import get_engine_logger
 from .utils import render_markdown_file
+import urllib.parse
 
 log = get_engine_logger()
 
@@ -53,7 +54,7 @@ def launch_run():
         return Response("No URLs provided", status=400)
 
     # Приводим к lowercase, чистим пробелы и убираем дубликаты, сохраняя порядок
-    raw_list = [u.strip().lower() for u in urls_raw.splitlines() if u.strip()]
+    raw_list = [normalize_url_complex(u) for u in urls_raw.splitlines() if u.strip()]
     urls = list(dict.fromkeys(raw_list))
 
     if not urls:
@@ -330,8 +331,9 @@ def launch_multi_geo_run():
     for line in lines:
         parts = line.split()
         if len(parts) >= 2:
-            url = parts[0].lower()
-            country = parts[1].lower()
+            # домен нормализуем, local path сохраняем
+            url = normalize_url_complex(parts[0])
+            country = parts[1].lower()  # гео в lower
 
             task_key = (url, country)
             if task_key not in seen_tasks:
@@ -357,7 +359,6 @@ def launch_multi_geo_run():
     if not tasks:
         return Response("No valid tasks found", status=400)
 
-    # Собираем общие параметры (те же, что и в обычном чекере)
     run_params = {
         "tasks": tasks,  # Вместо плоского списка urls передаем список задач
         "proxy_type": request.form.get("proxy_type") or "http",
@@ -373,9 +374,42 @@ def launch_multi_geo_run():
 
     log.info(f"Accepted /run-multi-geo request. Lines: {len(tasks)}. Starting run...")
 
-    # Вызываем новую функцию в оркестраторе (сейчас создадим её заглушку)
+    # Вызываем новую функцию в оркестраторе
     from engine.orchestrator import start_multi_geo_run
     run_id = start_multi_geo_run(run_params)
 
     return jsonify({"run_id": run_id}), 202
 
+
+def normalize_url_complex(raw_url: str) -> str:
+    """
+    Приводит домен к нижнему регистру, сохраняя регистр local path и параметров.
+    Domain.COM/LoCaL_PatH -> domain.com/LoCaL_PatH
+    """
+    url = raw_url.strip()
+    if not url:
+        return ""
+
+    # Добавляем временную схему, если её нет, для корректного парсинга
+    has_scheme = "://" in url
+    parse_url = url if has_scheme else f"http://{url}"
+
+    try:
+        parsed = urllib.parse.urlsplit(parse_url)
+        # собираем обратно: домен в lower, остальное как есть
+        netloc = parsed.netloc.lower()
+        path = parsed.path
+        query = parsed.query
+        fragment = parsed.fragment
+
+        # пересобираем без схемы, если её не было изначально
+        scheme = parsed.scheme + "://" if has_scheme else ""
+        new_url = f"{scheme}{netloc}{path}"
+        if query:
+            new_url += f"?{query}"
+        if fragment:
+            new_url += f"#{fragment}"
+        return new_url
+    except Exception:
+        # Если парсер упал, возвращаем как есть (fallback)
+        return url

@@ -8,6 +8,8 @@ A web application to check the availability of websites ("mirrors") through the 
 * **Docker:** Ensure Docker is installed and running. Installation instructions: [Get Docker](https://docs.docker.com/get-docker/)
 * **Docker Compose:** Usually installed with Docker Desktop. Check with `docker-compose --version`.
 
+---
+
 ## Setup
 
 1.  **Clone the repository:**
@@ -28,6 +30,8 @@ A web application to check the availability of websites ("mirrors") through the 
         * **`TZ`:** (Optional) Set your local timezone (e.g., `Europe/Kyiv`). Defaults to `UTC`.
         * **`APP_HOST` and `APP_PORT`:** (Optional) Change the host/port. Defaults to `127.0.0.1:8888`.
         * **`MAX_CONCURRENCY`, `MAX_SCREENSHOT_WORKERS`, and timeouts:** You can adjust performance parameters, although, these are **reasonable** defaults, I do not recommend changing them. In any case, change these options only if you understand what you're doing and why. Consider yourself warned ;)
+
+---
 
 ## Running the Application
 
@@ -73,6 +77,8 @@ A web application to check the availability of websites ("mirrors") through the 
         docker image prune
         ```
 
+---
+
 ## First Run: Syncing the Geo Catalog
 
 When the application starts for the first time, it uses an **empty** Geo catalog (`soax_geo.json`). To use the checker, you **must** fetch the Geo data from SOAX first.
@@ -86,6 +92,8 @@ When the application starts for the first time, it uses an **empty** Geo catalog
 
 Once this is done, the **Checker** page will correctly show countries, regions, cities, and ISPs in the dropdown menus.
 
+---
+
 ## Usage
 
 * **Checker (`/`):**
@@ -98,6 +106,8 @@ Once this is done, the **Checker** page will correctly show countries, regions, 
 * **Settings (`/settings`):**
     * View and **dangerously** edit the live `app.yaml` config file.
 
+---
+
 ## Configuration Priority
 
 The application loads settings in a specific order. Settings loaded later **override** settings loaded earlier:
@@ -105,7 +115,6 @@ The application loads settings in a specific order. Settings loaded later **over
 1.  **`data/config/app.yaml`:** The base configuration file. It is created on first run if it doesn't exist.
 2.  **Environment Variables (`.env` file):** **(Recommended)** Any variable set in `.env` (like `APP_PORT` or `DEFAULT_THEME`) will override the value from `app.yaml`.
 
----
 
 ### Advanced Configuration (`app.yaml`)
 
@@ -144,11 +153,57 @@ dns_checker:
     "Amazon AWS": ["Amazon", "AWS", "AMAZON-02", "Amazon Technologies Inc."]
 ```
 
+
+---
+
+## Versioning & Updates
+
+The project follows **Semantic Versioning (X.Y.Z)**. Image tags in `docker-compose.yml` are explicitly linked to specific releases to ensure environment stability and avoid issues common with the `latest` tag.
+
+### Update Notifications
+
+The application automatically checks for new versions in a background thread every 3 hours. If a newer version is detected on GitHub, a **"New version available"** badge will appear in the web interface header next to the theme toggle.
+
+### Update Procedure
+
+Thanks to GitHub Actions automation, the update process is straightforward and does not require manual editing of configuration files:
+
+1. **Pull the latest changes** from the master branch:
+```bash
+git pull origin master
+
+```
+
+*This command automatically updates the `VERSION` file and the image tag in `docker-compose.yml` to the latest release.*
+2. **Rebuild and restart** the container:
+```bash
+docker-compose up -d --build
+
+```
+
+3. **(Optional) Clean up** old images to save disk space:
+```bash
+docker image prune -f
+
+```
+
+---
+
+## Main functionality
+
+* **DO Checker**: Checking a list of URLs via a specific location (Port-mode).
+* **Multi-Geo Checker**: Bulk domain check in format `domain.com country_code`.
+* **DNS Tools**: Checking A-records and identifying the provider via Whois/RDAP.
+* **Geo Catalog**: Managing local caches for regions, cities, and ISPs.
+
+---
+
 ## Logs and Data
 
 * **Logs**: All check results (`.md`, `.png`) and the engine.log are stored in the local `./logs/` directory (mounted from `/logs` in the container).
 * **Data**: The `app.yaml` config and `soax_geo.json` catalog are stored in the local `./data/` directory.
 
+---
 
 ## Stopping the Application
 
