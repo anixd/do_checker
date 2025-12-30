@@ -3,6 +3,7 @@ import time
 import os
 import requests
 from logging_.engine_logger import get_engine_logger
+from packaging import version
 
 log = get_engine_logger()
 
@@ -35,53 +36,58 @@ def _set_update_status(status: bool):
 def check_for_updates_thread():
     """
     Функция для запуска в фоновом потоке (daemon thread).
-    Проверяет обновления при старте и каждые 6 часов.
+    Проверяет обновления при старте и каждые 3 часа.
     """
-    log.info("Update checker thread started. Initial check in 10 seconds...")
-    time.sleep(10)  # Даем приложению запуститься
+    log.info("Update checker thread started. Initial check in 20 seconds...")
+    time.sleep(20)  # Даем приложению запуститься
 
     while True:
         try:
             log.info("Checking for new version...")
 
-            # 1. Получаем удаленный хэш
+            # 1. Получаем удаленный текст версии
             try:
                 response = requests.get(REMOTE_VERSION_URL, timeout=15)
                 response.raise_for_status()
-                remote_hash = response.text.strip()
+                remote_version_str = response.text.strip()
             except requests.exceptions.RequestException as e:
                 log.warning(f"Failed to fetch remote VERSION file: {e}")
-                # Пропускаем эту проверку, попробуем через 6 часов
-                time.sleep(21600)
+                time.sleep(10800)
                 continue
 
-            # 2. Получаем локальный хэш
+            # 2. Получаем локальный текст версии
             try:
                 with open(LOCAL_VERSION_FILE, "r") as f:
-                    local_hash = f.read().strip()
+                    local_version_str = f.read().strip()
             except FileNotFoundError:
                 log.error(f"FATAL: Local VERSION file not found at {LOCAL_VERSION_FILE}. Update check disabled.")
-                # Файла нет, проверять бессмысленно.
                 _set_update_status(False)
-                return  # Завершаем поток
+                return
             except Exception as e:
                 log.error(f"Failed to read local VERSION file: {e}")
-                time.sleep(21600)  # 24 hours
+                time.sleep(10800)
                 continue
 
-            # 3. Сравниваем хеши
-            if local_hash != remote_hash and remote_hash:
-                log.info(f"Update available! Local={local_hash}, Remote={remote_hash}")
-                _set_update_status(True)
-            else:
-                log.info(f"App is up to date (Local={local_hash})")
-                _set_update_status(False)
+            # 3. Сравниваем версии (SemVer)
+            try:
+                v_remote = version.parse(remote_version_str)
+                v_local = version.parse(local_version_str)
 
-            # 4. спим 6 часов
-            time.sleep(21600)
+                if v_remote > v_local:
+                    log.info(f"Update available! Local={local_version_str}, Remote={remote_version_str}")
+                    _set_update_status(True)
+                else:
+                    log.info(f"App is up to date (Local={local_version_str}, Remote={remote_version_str})")
+                    _set_update_status(False)
+            except Exception as e:
+                log.error(f"Failed to parse version strings: {e}")
+                # Fallback к обычному сравнению, если формат строк не соответствует SemVer
+                _set_update_status(local_version_str != remote_version_str and remote_version_str != "")
+
+            # 4. спим 3 часа
+            time.sleep(10800)
 
         except Exception as e:
-            # Общий логер, чтобы поток никогда не падал
             log.error(f"Unhandled error in update checker thread: {e}", exc_info=True)
-            log.info("Retrying update check in 24 hours...")
-            time.sleep(21600)
+            log.info("Retrying update check in 3 hours...")
+            time.sleep(10800)
