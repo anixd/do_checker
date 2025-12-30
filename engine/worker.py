@@ -190,6 +190,7 @@ def execute_check(run_params: dict[str, Any]) -> dict:
 
     run_id_for_log = run_params.get('run_id', 'NO_RUN_ID')
     url = run_params["url"]
+    geo = run_params.get("country")
     log.debug(f"[{run_id_for_log}] execute_check started for {url}")
 
     timeout_sec = run_params["timeout_sec"]
@@ -199,7 +200,13 @@ def execute_check(run_params: dict[str, Any]) -> dict:
 
     domain, url_full = _normalize_url(url)
     ts = datetime.now().strftime("%H-%M-%S")
-    base_name = f"{ts}_{domain}"
+
+    if geo:
+        # Режим Multi-Geo: 01-17-56_domain.com_az
+        base_name = f"{ts}_{domain}_{geo.lower()}"
+    else:
+        # Стандартный режим (если гео не передано явно): 01-17-56_domain.com
+        base_name = f"{ts}_{domain}"
 
     md_path = unique_file_path(target_dir, base_name, "md")
     png_path = None
