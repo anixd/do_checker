@@ -48,10 +48,17 @@ def index():
 @bp.post("/run")
 def launch_run():
     urls_raw = (request.form.get("urls") or "").strip()
-    urls = [u.strip() for u in urls_raw.splitlines() if u.strip()]
-    if not urls:
+    if not urls_raw:
         log.warning("Run rejected: No URLs provided.")
         return Response("No URLs provided", status=400)
+
+    # Приводим к lowercase, чистим пробелы и убираем дубликаты, сохраняя порядок
+    raw_list = [u.strip().lower() for u in urls_raw.splitlines() if u.strip()]
+    urls = list(dict.fromkeys(raw_list))
+
+    if not urls:
+        log.warning("Run rejected: No valid URLs after normalization.")
+        return Response("No valid URLs provided", status=400)
 
     run_params = {
         "urls": urls,
@@ -317,21 +324,38 @@ def launch_multi_geo_run():
         return Response("No URLs and countries provided", status=400)
 
     tasks = []
+    seen_tasks = set()
+    seen_errors = set()
+
     for line in lines:
         parts = line.split()
         if len(parts) >= 2:
-            # Валидный формат: url cc
-            tasks.append({
-                "url": parts[0],
-                "country": parts[1].lower()
-            })
+            url = parts[0].lower()
+            country = parts[1].lower()
+
+            task_key = (url, country)
+            if task_key not in seen_tasks:
+                tasks.append({
+                    "url": url,
+                    "country": country
+                })
+                seen_tasks.add(task_key)
         else:
-            # Ошибка формата: записываем как задачу с ошибкой, чтобы вывести в UI
-            tasks.append({
-                "url": parts[0] if parts else "Unknown",
-                "country": None,
-                "parsing_error": "Invalid format (expected: url cc)"
-            })
+            # Обработка ошибок формата
+            url_err = parts[0].lower() if parts else "Unknown"
+            err_msg = "Invalid format (expected: url cc)"
+
+            err_key = (url_err, err_msg)
+            if err_key not in seen_errors:
+                tasks.append({
+                    "url": url_err,
+                    "country": None,
+                    "parsing_error": err_msg
+                })
+                seen_errors.add(err_key)
+
+    if not tasks:
+        return Response("No valid tasks found", status=400)
 
     # Собираем общие параметры (те же, что и в обычном чекере)
     run_params = {
