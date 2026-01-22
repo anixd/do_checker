@@ -26,6 +26,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 CLAUDE.md
+.claude/
 .claudeignore
 
 # PyInstaller
