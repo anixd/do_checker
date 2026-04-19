@@ -1,3 +1,12 @@
+## [1.5.3] - 2026-04-19
+
+### Added
+
+* **All-Country Check Mode**: The "Country" dropdown on the Main Checker now has an "ALL" option at the top. Selecting it runs the submitted URL(s) against every country present in the local Geo catalog in a single submit. Region / City / ISP selectors are disabled in this mode and their values are ignored — SOAX picks those parameters randomly per request.
+* **ALL-Mode Indicator**: A red "Checking in ALL available countries..." notice is shown above the action buttons while an ALL-mode run is in progress, and is hidden automatically when the run completes.
+
+---
+
 ## [1.5.2] - 2025-12-30
 
 ### Added
@@ -13,6 +22,8 @@
 ### Fixed
 
 * **404 Errors**: Resolved an issue where URLs with case-sensitive paths (e.g., `/dDjpEn63`) failed because the entire URL was forced to lowercase.
+
+---
 
 ## [1.5.1] - 2025-12-29
 

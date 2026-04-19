@@ -61,47 +61,63 @@ def launch_run():
         log.warning("Run rejected: No valid URLs after normalization.")
         return Response("No valid URLs provided", status=400)
 
+    country_code = request.form.get("country")
+    if not country_code:
+        log.warning("Run rejected: Country is required.")
+        return Response("Country is required", status=400)
+
+    # Обработка режима ALL
+    if country_code == 'all':
+        from engine.orchestrator import start_multi_geo_run
+
+        all_countries = CatalogStore.get_countries()
+        tasks = []
+        for u in urls:
+            for c in all_countries:
+                tasks.append({
+                    "url": u,
+                    "country": c['code']
+                })
+
+        run_params = {
+            "tasks": tasks,
+            "proxy_type": request.form.get("proxy_type") or "http",
+            "dns_mode": request.form.get("dns_mode") or "proxy",
+            "connection_type": request.form.get("connection_type") or "wifi",
+            "proxy_host": request.form.get("proxy_host") or None,
+            "proxy_port": request.form.get("proxy_port") or None,
+            "timeout_sec": int(request.form.get("timeout_sec") or 60),
+            "make_screenshot": bool(request.form.get("make_screenshot")),
+            "debug_mode": bool(request.form.get("debug_mode")),
+            "multi_geo": True
+        }
+
+        log.info(f"Accepted ALL-country run request. URLs: {len(urls)}, Tasks: {len(tasks)}.")
+        run_id = start_multi_geo_run(run_params)
+        return jsonify({"run_id": run_id}), 202
+
+    # Стандартный режим (одна страна)
     run_params = {
         "urls": urls,
-
-        # Geo
-        "country": request.form.get("country") or "",
+        "country": country_code,
         "region_code": request.form.get("region") or None,
         "city": request.form.get("city") or None,
         "isp": request.form.get("isp") or None,
-
-        # Proxy
         "proxy_type": request.form.get("proxy_type") or "http",
         "dns_mode": request.form.get("dns_mode") or "proxy",
         "connection_type": request.form.get("connection_type") or "wifi",
-
-        # Overrides
         "proxy_host": request.form.get("proxy_host") or None,
         "proxy_port": request.form.get("proxy_port") or None,
-
-        # Execution
         "timeout_sec": int(request.form.get("timeout_sec") or 60),
         "make_screenshot": bool(request.form.get("make_screenshot")),
         "debug_mode": bool(request.form.get("debug_mode")),
-
-        # Sticky (пока не используется в Port-режиме, но передаем)
         "sticky_policy": request.form.get("sticky_policy") or "auto",
         "sticky_ttl_sec": int(request.form.get("sticky_ttl_sec") or 360),
     }
 
-    if not run_params["country"]:
-        log.warning("Run rejected: Country is required.")
-        return Response("Country is required", status=400)
-
-    log.info(
-        f"Accepted /run request. URLs: {len(urls)}. "
-        f"Country: {run_params.get('country')}. Starting run..."
-    )
-
+    log.info(f"Accepted standard run request. URLs: {len(urls)}, Country: {country_code}.")
     run_id = start_run(run_params)
-    log.info(f"[{run_id}] Returning HTTP 202 to client.")
-
-    return jsonify({"run_id": run_id}), 202 # 202 Accepted
+    return jsonify({"run_id": run_id}), 202
 
 
 @bp.get("/catalog")
