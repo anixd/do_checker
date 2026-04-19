@@ -42,10 +42,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (countrySelect) {
       countrySelect.addEventListener("change", async (e) => {
         const countryCode = e.target.value;
+
         populateSelect(regionSelect, [], 'region');
         populateSelect(citySelect, [], 'city');
         populateSelect(ispSelect, [], 'isp');
-        if (!countryCode) { return; }
+
+        // Если выбрано ALL — выходим, оставляя поля заблокированными
+        if (!countryCode || countryCode === 'all') {
+            return;
+        }
 
         try {
           // используем URL из geoUrls
@@ -159,11 +164,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (form && runButton) {
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        runButton.disabled = true; runButton.textContent = "Running...";
+
+        // Сброс состояния интерфейса
+        runButton.disabled = true;
+        runButton.textContent = "Running...";
         resultsContainer.innerHTML = "";
         if (currentEventSource) { currentEventSource.close(); }
 
         const formData = new FormData(form);
+        const allStatusMsg = document.getElementById("all-status-message");
+        const selectedCountry = formData.get("country");
+
+        if (allStatusMsg) {
+            allStatusMsg.style.display = (selectedCountry === "all") ? "block" : "none";
+        }
+
         let response;
         try {
           response = await fetch(form.action, { method: "POST", body: formData });
@@ -203,10 +218,18 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 resultsContainer.append(renderCard(payload));
             }
-        } else if (payload.type === 'run_finished') {
+            } else if (payload.type === 'run_finished') {
+                // Обновляем статус в заголовке результатов
                 const statusEl = document.getElementById(`run-status-${payload.run_id}`);
-                if (statusEl) { statusEl.textContent = `(Finished in ${payload.totals.time_ms / 1000}s. OK: ${payload.totals.ok}, Err: ${payload.totals.err})`; }
-                runButton.disabled = false; runButton.textContent = "Run checks";
+                if (statusEl) {
+                    statusEl.textContent = `(Finished in ${payload.totals.time_ms / 1000}s. OK: ${payload.totals.ok}, Err: ${payload.totals.err})`;
+                }
+
+                runButton.disabled = false;
+                runButton.textContent = "Run checks";
+                if (allStatusMsg) {
+                    allStatusMsg.style.display = "none";
+                }
                 currentEventSource.close();
             }
          };

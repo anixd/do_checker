@@ -20,6 +20,7 @@
           <label for="country">Country (required)</label>
           <select name="country" id="country" required>
             <option value="" disabled selected>-- choose --</option>
+            <option value="all">ALL (Check in every country)</option>
             {% for c in countries %}
               <option value="{{c.code}}">{{c.code | upper}} — {{c.name}}</option>
             {% endfor %}
@@ -93,6 +94,8 @@
         </label>
       </div>
     </fieldset>
+
+    <p id="all-status-message" class="text-danger" style="display:none;">Checking in ALL available countries...</p>
 
     <div class="row" style="justify-content: space-between; align-items: center;">
        <div>
